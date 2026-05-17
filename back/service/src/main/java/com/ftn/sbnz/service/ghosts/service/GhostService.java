@@ -8,7 +8,7 @@ import com.ftn.sbnz.model.evidence.CurrentEvidence;
 import com.ftn.sbnz.model.evidence.Evidence;
 import com.ftn.sbnz.model.ghosts.GhostCandidate;
 import com.ftn.sbnz.model.observations.HuntObservation;
-import com.ftn.sbnz.service.ghosts.dto.GhostIndetificationReqestDTO;
+import com.ftn.sbnz.service.ghosts.dto.GhostIdentificationRequestDTO;
 import com.ftn.sbnz.service.ghosts.utils.HuntMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class GhostService {
     private final IndentificatorService indentificatorService;
 
-    public List<GhostCandidate> indifyGhost(GhostIndetificationReqestDTO reqest) {
+    public List<GhostCandidate> indifyGhost(GhostIdentificationRequestDTO reqest) {
         Evidence ev1 = parseEvidence(reqest.getEvidence1());
         Evidence ev2 = parseEvidence(reqest.getEvidence2());
         CurrentEvidence currentEvidence = new CurrentEvidence(

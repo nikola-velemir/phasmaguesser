@@ -193,21 +193,22 @@ then
     System.out.println("[Nivo 3 - HIGH] Mare +3 (Attack_In_Darkness)");
 end
 
-// KAZNA: lov u osvetljenoj sobi direktno protivreči Mare profilu
-rule "Profile_Penalty_Mare_Hunt_In_Light"
+// KAZNA: lov nije pokrenut u mraku — direktno protivreči Mare profilu
+// Koristimo samo huntStartedInDarkRoom koje postoji u modelu
+rule "Profile_Penalty_Mare_Hunt_Not_In_Dark"
     salience 5
 when
-    HuntObservation(huntStartedInDarkRoom == false, huntStartedInLitRoom == true)
+    HuntObservation(huntStartedInDarkRoom == false)
     $c : GhostCandidate(
         ghostName == "Mare",
         eliminated == false,
-        appliedRules not contains "Profile_Penalty_Mare_Hunt_In_Light"
+        appliedRules not contains "Profile_Penalty_Mare_Hunt_Not_In_Dark"
     )
 then
     $c.addScore(-3);
-    $c.applyRule("Profile_Penalty_Mare_Hunt_In_Light");
+    $c.applyRule("Profile_Penalty_Mare_Hunt_Not_In_Dark");
     update($c);
-    System.out.println("[Nivo 3 - KAZNA] Mare -3 (lov u osvetljenoj sobi)");
+    System.out.println("[Nivo 3 - KAZNA] Mare -3 (lov nije pokrenut u mraku)");
 end
 
 
@@ -337,22 +338,9 @@ then
     System.out.println("[Nivo 3 - HIGH] Oni +3 (High_Activity_Near_Player)");
 end
 
-// KAZNA: Oni se nikada ne pojavljuje kao magla
-rule "Profile_Penalty_Oni_Fog_Form"
-    salience 5
-when
-    HuntObservation(ghostAppearedAsFog == true)
-    $c : GhostCandidate(
-        ghostName == "Oni",
-        eliminated == false,
-        appliedRules not contains "Profile_Penalty_Oni_Fog_Form"
-    )
-then
-    $c.addScore(-3);
-    $c.applyRule("Profile_Penalty_Oni_Fog_Form");
-    update($c);
-    System.out.println("[Nivo 3 - KAZNA] Oni -3 (pojavio se kao magla, nemoguće)");
-end
+// NAPOMENA: Kazna za Oni (pojava kao magla) je uklonjena jer polje
+// ghostAppearedAsFog ne postoji u HuntObservation modelu.
+// Oni profil se oslanja isključivo na High_Activity_Near_Player bonus.
 
 
 // ============================================================================

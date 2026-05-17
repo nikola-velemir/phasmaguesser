@@ -10,7 +10,8 @@ public final class CurrentEvidence implements Serializable {
     public CurrentEvidence() {
         this.confirmedEvidence = EnumSet.noneOf(Evidence.class);
     }
-public CurrentEvidence(Evidence... evidences) {
+
+    public CurrentEvidence(Evidence... evidences) {
         this.confirmedEvidence = EnumSet.noneOf(Evidence.class);
         if (evidences != null) {
             for (Evidence e : evidences) {
@@ -20,11 +21,22 @@ public CurrentEvidence(Evidence... evidences) {
             }
         }
     }
-    public boolean hasEvidence(Evidence e){
+    public CurrentEvidence(Set<Evidence> evidences) {
+        this.confirmedEvidence = EnumSet.noneOf(Evidence.class);
+        if (evidences != null) {
+            for (Evidence e : evidences) {
+                if (e != null) { // Preskačemo null vrednosti!
+                    this.confirmedEvidence.add(e);
+                }
+            }
+        }
+    }
+    public boolean hasEvidence(Evidence e) {
         return confirmedEvidence.contains(e);
     }
+
     public Set<Evidence> getConfirmedEvidence() {
         return confirmedEvidence;
     }
-    
+
 }

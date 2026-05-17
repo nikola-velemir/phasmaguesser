@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ftn.sbnz.service.ghosts.dto.GhostIndetificationReqestDTO;
+import com.ftn.sbnz.service.ghosts.dto.GhostIdentificationRequestDTO;
 import com.ftn.sbnz.service.ghosts.service.GhostService;
 
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class GhostController {
     private final GhostService ghostService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Object> indentify(@RequestBody GhostIndetificationReqestDTO request) {
+    public ResponseEntity<Object> indentify(@RequestBody GhostIdentificationRequestDTO request) {
         try {
             return ResponseEntity.ok(ghostService.indifyGhost(request));
 

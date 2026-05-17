@@ -39,24 +39,21 @@ rule "Eliminate_Incompatible_Evidence"
     salience 140
 when
     $input : CurrentEvidence()
-    $confirmedEvidence : Evidence() from $input.getConfirmedEvidence()
-    $g : Ghost(
-        evidence1 != $confirmedEvidence,
-        evidence2 != $confirmedEvidence,
-        evidence3 != $confirmedEvidence
-    )
+    $e : Evidence() from $input.getConfirmedEvidence()
+    // Isti eval() pattern kao u ghosts.drt template-u — kompatibilno sa String poljima
+    $g : Ghost($ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
+    eval($e != $ge1 && $e != $ge2 && $e != $ge3)
     $c : GhostCandidate(
         ghostName == $g.name,
         eliminated == false,
         appliedRules not contains "Eliminated_By_Evidence"
     )
 then
-    $c.setEliminated(true);
-    $c.addScore(-9999);
+    $c.eliminate();
     $c.applyRule("Eliminated_By_Evidence");
     update($c);
     System.out.println("[Nivo 2 - ELIMINACIJA] " + $g.getName()
-        + " eliminisan — nema dokaz: " + $confirmedEvidence);
+        + " eliminisan — nema dokaz: " + $e);
 end
 
 
@@ -77,8 +74,7 @@ when
         appliedRules not contains "Eliminate_Wraith_Salt_Footprint"
     )
 then
-    $c.setEliminated(true);
-    $c.addScore(-9999);
+    $c.eliminate();
     $c.applyRule("Eliminate_Wraith_Salt_Footprint");
     update($c);
     System.out.println("[Nivo 2 - ELIMINACIJA] Wraith eliminisan — otisak u soli nađen (nemoguće za Wraith).");
@@ -96,23 +92,20 @@ rule "Score_Confirmed_Evidence"
     salience 20
 when
     $input : CurrentEvidence()
-    $confirmedEvidence : Evidence() from $input.getConfirmedEvidence()
-    $g : Ghost(
-        evidence1 == $confirmedEvidence ||
-        evidence2 == $confirmedEvidence ||
-        evidence3 == $confirmedEvidence
-    )
+    $e : Evidence() from $input.getConfirmedEvidence()
+    $g : Ghost($ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
+    eval($e == $ge1 || $e == $ge2 || $e == $ge3)
     $c : GhostCandidate(
         ghostName == $g.name,
         eliminated == false,
-        appliedRules not contains ("Evidence_" + $confirmedEvidence.toString())
+        appliedRules not contains ("Evidence_" + $e.toString())
     )
 then
     $c.addScore(1);
-    $c.applyRule("Evidence_" + $confirmedEvidence.toString());
+    $c.applyRule("Evidence_" + $e.toString());
     update($c);
     System.out.println("[Nivo 2 - DOKAZ] " + $g.getName()
-        + " +1 za dokaz: " + $confirmedEvidence);
+        + " +1 za dokaz: " + $e);
 end
 
 
