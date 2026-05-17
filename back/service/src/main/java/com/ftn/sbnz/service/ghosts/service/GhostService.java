@@ -35,9 +35,10 @@ public class GhostService {
 
             // 3. Mapiraj DTO u CurrentEvidence objekat koji Drools očekuje
             // Koristimo Evidence.valueOf() da pretvorimo String iz JSON-a u tvoj Enum
+            Evidence ev1 = parseEvidence(reqest.getEvidence1());
+            Evidence ev2 = parseEvidence(reqest.getEvidence2());
             CurrentEvidence currentEvidence = new CurrentEvidence(
-                    Evidence.valueOf(reqest.getEvidence1().toUpperCase()),
-                    Evidence.valueOf(reqest.getEvidence2().toUpperCase()));
+                    ev1, ev2);
             // Ubacujemo trenutni dokaz u radnu memoriju
             ksession.insert(currentEvidence);
 
@@ -67,5 +68,14 @@ public class GhostService {
                 ksession.dispose();
             }
         }
+    }
+
+    private Evidence parseEvidence(String evidenceString) {
+        Evidence ev = null;
+        if (evidenceString != null && !evidenceString.trim().isEmpty()) {
+            ev = Evidence.valueOf(evidenceString.toUpperCase());
+        }
+        return ev;
+
     }
 }

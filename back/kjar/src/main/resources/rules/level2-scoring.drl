@@ -1,0 +1,780 @@
+package com.ftn.sbnz.kjar.rules
+
+import com.ftn.sbnz.model.evidence.CurrentEvidence;
+import com.ftn.sbnz.model.evidence.HuntObservation;
+import com.ftn.sbnz.model.evidence.Evidence;
+import com.ftn.sbnz.model.ghosts.Ghost;
+import com.ftn.sbnz.model.ghosts.GhostCandidate;
+import com.ftn.sbnz.model.ghosts.DerivedTrait;
+
+// ============================================================
+//  NIVO 2 — Skorovanje kandidata po poklapanju dokaza i osobina
+//
+//  Salience:
+//    25  → Eliminacije (diskvalifikacije, -inf)
+//    20  → Inicijalizacija GhostCandidate objekata
+//    15  → Bodovanje dokaza (+1 po poklapanju, max +3)
+//    12  → Bodovanje osobina (+1 po poklapanju)
+// ============================================================
+
+
+// ============================================================
+//  INICIJALIZACIJA — jedan GhostCandidate po duhu
+// ============================================================
+
+rule "Init_Candidate_Spirit"       salience 20 when not GhostCandidate(ghostName == "Spirit")       then insert(new GhostCandidate("Spirit"));       end
+rule "Init_Candidate_Wraith"       salience 20 when not GhostCandidate(ghostName == "Wraith")       then insert(new GhostCandidate("Wraith"));       end
+rule "Init_Candidate_Phantom"      salience 20 when not GhostCandidate(ghostName == "Phantom")      then insert(new GhostCandidate("Phantom"));      end
+rule "Init_Candidate_Poltergeist"  salience 20 when not GhostCandidate(ghostName == "Poltergeist")  then insert(new GhostCandidate("Poltergeist"));  end
+rule "Init_Candidate_Banshee"      salience 20 when not GhostCandidate(ghostName == "Banshee")      then insert(new GhostCandidate("Banshee"));      end
+rule "Init_Candidate_Jinn"         salience 20 when not GhostCandidate(ghostName == "Jinn")         then insert(new GhostCandidate("Jinn"));         end
+rule "Init_Candidate_Mare"         salience 20 when not GhostCandidate(ghostName == "Mare")         then insert(new GhostCandidate("Mare"));         end
+rule "Init_Candidate_Revenant"     salience 20 when not GhostCandidate(ghostName == "Revenant")     then insert(new GhostCandidate("Revenant"));     end
+rule "Init_Candidate_Shade"        salience 20 when not GhostCandidate(ghostName == "Shade")        then insert(new GhostCandidate("Shade"));        end
+rule "Init_Candidate_Demon"        salience 20 when not GhostCandidate(ghostName == "Demon")        then insert(new GhostCandidate("Demon"));        end
+rule "Init_Candidate_Yurei"        salience 20 when not GhostCandidate(ghostName == "Yurei")        then insert(new GhostCandidate("Yurei"));        end
+rule "Init_Candidate_Oni"          salience 20 when not GhostCandidate(ghostName == "Oni")          then insert(new GhostCandidate("Oni"));          end
+rule "Init_Candidate_Yokai"        salience 20 when not GhostCandidate(ghostName == "Yokai")        then insert(new GhostCandidate("Yokai"));        end
+rule "Init_Candidate_Hantu"        salience 20 when not GhostCandidate(ghostName == "Hantu")        then insert(new GhostCandidate("Hantu"));        end
+rule "Init_Candidate_Goryo"        salience 20 when not GhostCandidate(ghostName == "Goryo")        then insert(new GhostCandidate("Goryo"));        end
+rule "Init_Candidate_Myling"       salience 20 when not GhostCandidate(ghostName == "Myling")       then insert(new GhostCandidate("Myling"));       end
+rule "Init_Candidate_Onryo"        salience 20 when not GhostCandidate(ghostName == "Onryo")        then insert(new GhostCandidate("Onryo"));        end
+rule "Init_Candidate_TheTwins"     salience 20 when not GhostCandidate(ghostName == "The Twins")    then insert(new GhostCandidate("The Twins"));    end
+rule "Init_Candidate_Raiju"        salience 20 when not GhostCandidate(ghostName == "Raiju")        then insert(new GhostCandidate("Raiju"));        end
+rule "Init_Candidate_Obake"        salience 20 when not GhostCandidate(ghostName == "Obake")        then insert(new GhostCandidate("Obake"));        end
+rule "Init_Candidate_TheMimic"     salience 20 when not GhostCandidate(ghostName == "The Mimic")    then insert(new GhostCandidate("The Mimic"));    end
+rule "Init_Candidate_Moroi"        salience 20 when not GhostCandidate(ghostName == "Moroi")        then insert(new GhostCandidate("Moroi"));        end
+rule "Init_Candidate_Deogen"       salience 20 when not GhostCandidate(ghostName == "Deogen")       then insert(new GhostCandidate("Deogen"));       end
+rule "Init_Candidate_Thaye"        salience 20 when not GhostCandidate(ghostName == "Thaye")        then insert(new GhostCandidate("Thaye"));        end
+
+
+// ============================================================
+//  ELIMINACIJE — automatska diskvalifikacija
+//  Dokaz koji duh NIKADA ne može imati → -inf
+// ============================================================
+
+// Wraith nikada ne ostavlja otiske u soli
+rule "Eliminate_Wraith_Salt_Footprint"
+    salience 25
+when
+    HuntObservation(saltFootprintFound == true)
+    $c : GhostCandidate(ghostName == "Wraith", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Wraith (otisak u soli)");
+end
+
+// Goryo ne napušta svoju sobu ako ima žive igrače u blizini — DOTS vidljiv golim okom isključuje Goryo
+rule "Eliminate_Goryo_Naked_Eye_DOTS"
+    salience 25
+when
+    HuntObservation(dotsVisibleToNakedEye == true)
+    $c : GhostCandidate(ghostName == "Goryo", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Goryo (DOTS vidljiv golim okom)");
+end
+
+// Jinn ne može da smanji brzinu blizu osigurača — ako je osigurač uključen a duh nije ubrzao, Jinn je malo verovatno
+// (ovo je soft eliminacija — ne -inf, samo odbijamo osobinu)
+
+// Yokai lovi samo ako se govori — ako nema glasa ali je lovio, Yokai je manje verovatno
+// (obrađeno u bodovanju, ne u eliminaciji jer nije apsolutno pravilo)
+
+// Demon može loviti pri SVAKOM sanity-u — ne eliminišemo ga ni zbog čega
+
+// Mimic uvek daje Ghost Orb kao lažni dokaz — ako je potvrđeno da nema Ghost Orb-a, The Mimic se eliminiše
+rule "Eliminate_Mimic_No_Ghost_Orb"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.GHOST_ORB)
+    $c : GhostCandidate(ghostName == "The Mimic", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: The Mimic (Ghost Orb isključen, a Mimic uvek ga daje)");
+end
+
+// Eliminacija po isključenim dokazima — ako igrač potvrdi da dokaz ne postoji
+// i taj dokaz je jedan od tri za nekog duha → duh se eliminiše
+
+// Spirit — EMF5, GHOST_WRITING, SPIRIT_BOX
+rule "Eliminate_Spirit_By_Missing_Evidence"
+    salience 25
+when
+    $e : CurrentEvidence(
+        ruledOutEvidence contains Evidence.EMF_LEVEL_5,
+        ruledOutEvidence contains Evidence.GHOST_WRITING
+    )
+    $c : GhostCandidate(ghostName == "Spirit", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Spirit (2+ dokaza isključena)");
+end
+
+rule "Eliminate_Spirit_By_Spirit_Box"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.SPIRIT_BOX)
+    $c : GhostCandidate(ghostName == "Spirit", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Spirit (Spirit Box isključen)");
+end
+
+// Wraith — EMF5, UV, SPIRIT_BOX
+rule "Eliminate_Wraith_By_UV"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.ULTRAVIOLET)
+    $c : GhostCandidate(ghostName == "Wraith", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Wraith (UV isključen)");
+end
+
+// Phantom — UV, GHOST_ORB, SPIRIT_BOX
+rule "Eliminate_Phantom_By_Orb"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.GHOST_ORB)
+    $c : GhostCandidate(ghostName == "Phantom", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Phantom (Ghost Orb isključen)");
+end
+
+// Poltergeist — UV, GHOST_WRITING, SPIRIT_BOX
+rule "Eliminate_Poltergeist_By_Writing"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.GHOST_WRITING)
+    $c : GhostCandidate(ghostName == "Poltergeist", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Poltergeist (Ghost Writing isključen)");
+end
+
+// Banshee — UV, GHOST_ORB, DOTS
+rule "Eliminate_Banshee_By_DOTS"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.DOTS_PROJECTOR)
+    $c : GhostCandidate(ghostName == "Banshee", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Banshee (DOTS isključen)");
+end
+
+// Jinn — EMF5, UV, FREEZING
+rule "Eliminate_Jinn_By_Freezing"
+    salience 25
+when
+    $e : CurrentEvidence(ruledOutEvidence contains Evidence.FREEZING_TEMPERATURES)
+    $c : GhostCandidate(ghostName == "Jinn", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Jinn (Freezing Temperatures isključen)");
+end
+
+// Mare — GHOST_ORB, GHOST_WRITING, SPIRIT_BOX
+rule "Eliminate_Mare_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        ruledOutEvidence not contains Evidence.GHOST_ORB,
+        ruledOutEvidence not contains Evidence.GHOST_WRITING,
+        ruledOutEvidence not contains Evidence.SPIRIT_BOX
+    )
+    // Mare nema EMF — prisustvo EMF5 isključuje Maru
+    $c : GhostCandidate(ghostName == "Mare", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Mare (EMF5 potvrđen, Mare ga nema)");
+end
+
+// Revenant — GHOST_ORB, GHOST_WRITING, FREEZING
+rule "Eliminate_Revenant_By_SpiritBox"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)
+    $c : GhostCandidate(ghostName == "Revenant", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Revenant (Spirit Box potvrđen, Revenant ga nema)");
+end
+
+// Shade — EMF5, GHOST_WRITING, FREEZING
+rule "Eliminate_Shade_By_SpiritBox"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)
+    $c : GhostCandidate(ghostName == "Shade", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Shade (Spirit Box potvrđen, Shade ga nema)");
+end
+
+// Demon — UV, GHOST_WRITING, FREEZING
+rule "Eliminate_Demon_By_SpiritBox"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)
+    $c : GhostCandidate(ghostName == "Demon", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Demon (Spirit Box potvrđen, Demon ga nema)");
+end
+
+// Yurei — GHOST_ORB, FREEZING, DOTS
+rule "Eliminate_Yurei_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Yurei", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Yurei (EMF5 potvrđen, Yurei ga nema)");
+end
+
+// Oni — EMF5, FREEZING, DOTS
+rule "Eliminate_Oni_By_GhostOrb"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)
+    $c : GhostCandidate(ghostName == "Oni", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Oni (Ghost Orb potvrđen, Oni ga nema)");
+end
+
+// Yokai — GHOST_ORB, SPIRIT_BOX, DOTS
+rule "Eliminate_Yokai_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Yokai", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Yokai (EMF5 potvrđen, Yokai ga nema)");
+end
+
+// Hantu — UV, GHOST_ORB, FREEZING
+rule "Eliminate_Hantu_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Hantu", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Hantu (EMF5 potvrđen, Hantu ga nema)");
+end
+
+// Goryo — EMF5, UV, DOTS
+rule "Eliminate_Goryo_By_GhostOrb"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)
+    $c : GhostCandidate(ghostName == "Goryo", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Goryo (Ghost Orb potvrđen, Goryo ga nema)");
+end
+
+// Myling — EMF5, UV, GHOST_WRITING
+rule "Eliminate_Myling_By_SpiritBox"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)
+    $c : GhostCandidate(ghostName == "Myling", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Myling (Spirit Box potvrđen, Myling ga nema)");
+end
+
+// Onryo — GHOST_ORB, FREEZING, SPIRIT_BOX
+rule "Eliminate_Onryo_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Onryo", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Onryo (EMF5 potvrđen, Onryo ga nema)");
+end
+
+// The Twins — EMF5, FREEZING, SPIRIT_BOX
+rule "Eliminate_TheTwins_By_GhostOrb"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)
+    $c : GhostCandidate(ghostName == "The Twins", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: The Twins (Ghost Orb potvrđen, The Twins ga nema)");
+end
+
+// Raiju — EMF5, GHOST_ORB, DOTS
+rule "Eliminate_Raiju_By_UV"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)
+    $c : GhostCandidate(ghostName == "Raiju", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Raiju (UV potvrđen, Raiju ga nema)");
+end
+
+// Obake — EMF5, UV, GHOST_ORB
+rule "Eliminate_Obake_By_Freezing"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES)
+    $c : GhostCandidate(ghostName == "Obake", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Obake (Freezing potvrđen, Obake ga nema)");
+end
+
+// The Mimic — UV, FREEZING, SPIRIT_BOX (+ Ghost Orb kao lažni)
+rule "Eliminate_Mimic_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "The Mimic", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: The Mimic (EMF5 potvrđen, The Mimic ga nema)");
+end
+
+// Moroi — GHOST_WRITING, FREEZING, SPIRIT_BOX
+rule "Eliminate_Moroi_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Moroi", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Moroi (EMF5 potvrđen, Moroi ga nema)");
+end
+
+// Deogen — GHOST_WRITING, SPIRIT_BOX, DOTS
+rule "Eliminate_Deogen_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Deogen", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Deogen (EMF5 potvrđen, Deogen ga nema)");
+end
+
+// Thaye — GHOST_ORB, GHOST_WRITING, DOTS
+rule "Eliminate_Thaye_By_EMF"
+    salience 25
+when
+    $e : CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)
+    $c : GhostCandidate(ghostName == "Thaye", eliminated == false)
+then
+    $c.eliminate();
+    update($c);
+    System.out.println("[Nivo 2] ELIMINISAN: Thaye (EMF5 potvrđen, Thaye ga nema)");
+end
+
+
+// ============================================================
+//  BODOVANJE DOKAZA — +1 po svakom poklapanju (max +3)
+//  Svaki duh ima 3 svoja dokaza; svaki poklopljeni dokaz = +1
+// ============================================================
+
+// --- SPIRIT: EMF5, GHOST_WRITING, SPIRIT_BOX ---
+rule "Score_Evidence_Spirit_EMF"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Spirit",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Spirit_Writing"   salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Spirit",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Spirit_SBox"      salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Spirit",eliminated==false)       then $c.addScore(1); update($c); end
+
+// --- WRAITH: EMF5, UV, SPIRIT_BOX ---
+rule "Score_Evidence_Wraith_EMF"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Wraith",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Wraith_UV"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Wraith",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Wraith_SBox"      salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Wraith",eliminated==false)       then $c.addScore(1); update($c); end
+
+// --- PHANTOM: UV, GHOST_ORB, SPIRIT_BOX ---
+rule "Score_Evidence_Phantom_UV"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Phantom",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Phantom_Orb"      salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Phantom",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Phantom_SBox"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Phantom",eliminated==false)      then $c.addScore(1); update($c); end
+
+// --- POLTERGEIST: UV, GHOST_WRITING, SPIRIT_BOX ---
+rule "Score_Evidence_Poltergeist_UV"   salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Poltergeist",eliminated==false)  then $c.addScore(1); update($c); end
+rule "Score_Evidence_Poltergeist_Wr"   salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Poltergeist",eliminated==false)  then $c.addScore(1); update($c); end
+rule "Score_Evidence_Poltergeist_SBox" salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Poltergeist",eliminated==false)  then $c.addScore(1); update($c); end
+
+// --- BANSHEE: UV, GHOST_ORB, DOTS ---
+rule "Score_Evidence_Banshee_UV"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Banshee",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Banshee_Orb"      salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Banshee",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Banshee_DOTS"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Banshee",eliminated==false)      then $c.addScore(1); update($c); end
+
+// --- JINN: EMF5, UV, FREEZING ---
+rule "Score_Evidence_Jinn_EMF"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Jinn",eliminated==false)         then $c.addScore(1); update($c); end
+rule "Score_Evidence_Jinn_UV"          salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Jinn",eliminated==false)         then $c.addScore(1); update($c); end
+rule "Score_Evidence_Jinn_Freezing"    salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Jinn",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- MARE: GHOST_ORB, GHOST_WRITING, SPIRIT_BOX ---
+rule "Score_Evidence_Mare_Orb"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Mare",eliminated==false)         then $c.addScore(1); update($c); end
+rule "Score_Evidence_Mare_Writing"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Mare",eliminated==false)         then $c.addScore(1); update($c); end
+rule "Score_Evidence_Mare_SBox"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Mare",eliminated==false)         then $c.addScore(1); update($c); end
+
+// --- REVENANT: GHOST_ORB, GHOST_WRITING, FREEZING ---
+rule "Score_Evidence_Revenant_Orb"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Revenant",eliminated==false)     then $c.addScore(1); update($c); end
+rule "Score_Evidence_Revenant_Writing" salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Revenant",eliminated==false)     then $c.addScore(1); update($c); end
+rule "Score_Evidence_Revenant_Freeze"  salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Revenant",eliminated==false)   then $c.addScore(1); update($c); end
+
+// --- SHADE: EMF5, GHOST_WRITING, FREEZING ---
+rule "Score_Evidence_Shade_EMF"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Shade",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Shade_Writing"    salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Shade",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Shade_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Shade",eliminated==false)      then $c.addScore(1); update($c); end
+
+// --- DEMON: UV, GHOST_WRITING, FREEZING ---
+rule "Score_Evidence_Demon_UV"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Demon",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Demon_Writing"    salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Demon",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Demon_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Demon",eliminated==false)      then $c.addScore(1); update($c); end
+
+// --- YUREI: GHOST_ORB, FREEZING, DOTS ---
+rule "Score_Evidence_Yurei_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Yurei",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Yurei_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Yurei",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Yurei_DOTS"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Yurei",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- ONI: EMF5, FREEZING, DOTS ---
+rule "Score_Evidence_Oni_EMF"          salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Oni",eliminated==false)          then $c.addScore(1); update($c); end
+rule "Score_Evidence_Oni_Freeze"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Oni",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Oni_DOTS"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Oni",eliminated==false)          then $c.addScore(1); update($c); end
+
+// --- YOKAI: GHOST_ORB, SPIRIT_BOX, DOTS ---
+rule "Score_Evidence_Yokai_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Yokai",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Yokai_SBox"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Yokai",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Yokai_DOTS"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Yokai",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- HANTU: UV, GHOST_ORB, FREEZING ---
+rule "Score_Evidence_Hantu_UV"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Hantu",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Hantu_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Hantu",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Hantu_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Hantu",eliminated==false)      then $c.addScore(1); update($c); end
+
+// --- GORYO: EMF5, UV, DOTS ---
+rule "Score_Evidence_Goryo_EMF"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Goryo",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Goryo_UV"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Goryo",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Goryo_DOTS"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Goryo",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- MYLING: EMF5, UV, GHOST_WRITING ---
+rule "Score_Evidence_Myling_EMF"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Myling",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Myling_UV"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Myling",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Myling_Writing"   salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Myling",eliminated==false)       then $c.addScore(1); update($c); end
+
+// --- ONRYO: GHOST_ORB, FREEZING, SPIRIT_BOX ---
+rule "Score_Evidence_Onryo_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Onryo",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Onryo_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Onryo",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Onryo_SBox"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Onryo",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- THE TWINS: EMF5, FREEZING, SPIRIT_BOX ---
+rule "Score_Evidence_Twins_EMF"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="The Twins",eliminated==false)    then $c.addScore(1); update($c); end
+rule "Score_Evidence_Twins_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="The Twins",eliminated==false)  then $c.addScore(1); update($c); end
+rule "Score_Evidence_Twins_SBox"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="The Twins",eliminated==false)    then $c.addScore(1); update($c); end
+
+// --- RAIJU: EMF5, GHOST_ORB, DOTS ---
+rule "Score_Evidence_Raiju_EMF"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Raiju",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Raiju_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Raiju",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Raiju_DOTS"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Raiju",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- OBAKE: EMF5, UV, GHOST_ORB ---
+rule "Score_Evidence_Obake_EMF"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.EMF_LEVEL_5)        $c:GhostCandidate(ghostName=="Obake",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Obake_UV"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="Obake",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Obake_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Obake",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- THE MIMIC: UV, FREEZING, SPIRIT_BOX (+ Ghost Orb lažni) ---
+rule "Score_Evidence_Mimic_UV"         salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.ULTRAVIOLET)         $c:GhostCandidate(ghostName=="The Mimic",eliminated==false)    then $c.addScore(1); update($c); end
+rule "Score_Evidence_Mimic_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="The Mimic",eliminated==false)  then $c.addScore(1); update($c); end
+rule "Score_Evidence_Mimic_SBox"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="The Mimic",eliminated==false)    then $c.addScore(1); update($c); end
+
+// --- MOROI: GHOST_WRITING, FREEZING, SPIRIT_BOX ---
+rule "Score_Evidence_Moroi_Writing"    salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Moroi",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Moroi_Freeze"     salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.FREEZING_TEMPERATURES) $c:GhostCandidate(ghostName=="Moroi",eliminated==false)      then $c.addScore(1); update($c); end
+rule "Score_Evidence_Moroi_SBox"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Moroi",eliminated==false)        then $c.addScore(1); update($c); end
+
+// --- DEOGEN: GHOST_WRITING, SPIRIT_BOX, DOTS ---
+rule "Score_Evidence_Deogen_Writing"   salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Deogen",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Deogen_SBox"      salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.SPIRIT_BOX)          $c:GhostCandidate(ghostName=="Deogen",eliminated==false)       then $c.addScore(1); update($c); end
+rule "Score_Evidence_Deogen_DOTS"      salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Deogen",eliminated==false)       then $c.addScore(1); update($c); end
+
+// --- THAYE: GHOST_ORB, GHOST_WRITING, DOTS ---
+rule "Score_Evidence_Thaye_Orb"        salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_ORB)           $c:GhostCandidate(ghostName=="Thaye",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Thaye_Writing"    salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.GHOST_WRITING)       $c:GhostCandidate(ghostName=="Thaye",eliminated==false)        then $c.addScore(1); update($c); end
+rule "Score_Evidence_Thaye_DOTS"       salience 15 when $e:CurrentEvidence(confirmedEvidence contains Evidence.DOTS_PROJECTOR)      $c:GhostCandidate(ghostName=="Thaye",eliminated==false)        then $c.addScore(1); update($c); end
+
+
+// ============================================================
+//  BODOVANJE OSOBINA — +1 po poklapanju osobine sa duhom
+// ============================================================
+
+rule "Score_Trait_Spirit_LongSmudge"
+    salience 12
+when
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    $c : GhostCandidate(ghostName == "Spirit", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Spirit +1 (Long_Smudge_Timer osobina)");
+end
+
+rule "Score_Trait_Wraith_NoSalt"
+    salience 12
+when
+    DerivedTrait(traitName == "No_Salt_Footprints")
+    $c : GhostCandidate(ghostName == "Wraith", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Wraith +1 (No_Salt_Footprints osobina)");
+end
+
+rule "Score_Trait_Phantom_PhotoDisappear"
+    salience 12
+when
+    DerivedTrait(traitName == "Photo_Disappearance")
+    $c : GhostCandidate(ghostName == "Phantom", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Phantom +1 (Photo_Disappearance osobina)");
+end
+
+rule "Score_Trait_Poltergeist_MultiThrow"
+    salience 12
+when
+    DerivedTrait(traitName == "Multi_Object_Throw")
+    $c : GhostCandidate(ghostName == "Poltergeist", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Poltergeist +1 (Multi_Object_Throw osobina)");
+end
+
+rule "Score_Trait_Banshee_ParabolicScream"
+    salience 12
+when
+    DerivedTrait(traitName == "Parabolic_Scream")
+    $c : GhostCandidate(ghostName == "Banshee", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Banshee +1 (Parabolic_Scream osobina)");
+end
+
+rule "Score_Trait_Jinn_SpeedFuseBox"
+    salience 12
+when
+    DerivedTrait(traitName == "Speed_Increase_With_Fuse_Box")
+    $c : GhostCandidate(ghostName == "Jinn", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Jinn +1 (Speed_Increase_With_Fuse_Box osobina)");
+end
+
+rule "Score_Trait_Mare_AttackDark"
+    salience 12
+when
+    DerivedTrait(traitName == "Attack_In_Darkness")
+    $c : GhostCandidate(ghostName == "Mare", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Mare +1 (Attack_In_Darkness osobina)");
+end
+
+rule "Score_Trait_Revenant_HighSpeed"
+    salience 12
+when
+    DerivedTrait(traitName == "High_Hunt_Speed")
+    $c : GhostCandidate(ghostName == "Revenant", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Revenant +1 (High_Hunt_Speed osobina)");
+end
+
+rule "Score_Trait_Shade_Shy"
+    salience 12
+when
+    DerivedTrait(traitName == "Shy_In_Presence")
+    $c : GhostCandidate(ghostName == "Shade", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Shade +1 (Shy_In_Presence osobina)");
+end
+
+rule "Score_Trait_Demon_EarlyHunt"
+    salience 12
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    $c : GhostCandidate(ghostName == "Demon", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Demon +1 (Early_Hunt_And_Low_Cooldown osobina)");
+end
+
+rule "Score_Trait_Yurei_DoorManip"
+    salience 12
+when
+    DerivedTrait(traitName == "Door_Manipulation")
+    $c : GhostCandidate(ghostName == "Yurei", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Yurei +1 (Door_Manipulation osobina)");
+end
+
+rule "Score_Trait_Oni_HighActivity"
+    salience 12
+when
+    DerivedTrait(traitName == "High_Activity_Near_Player")
+    $c : GhostCandidate(ghostName == "Oni", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Oni +1 (High_Activity_Near_Player osobina)");
+end
+
+rule "Score_Trait_Yokai_Voice"
+    salience 12
+when
+    DerivedTrait(traitName == "Voice_Sensitivity")
+    $c : GhostCandidate(ghostName == "Yokai", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Yokai +1 (Voice_Sensitivity osobina)");
+end
+
+rule "Score_Trait_Hantu_TempSpeed"
+    salience 12
+when
+    DerivedTrait(traitName == "Temperature_Based_Speed")
+    $c : GhostCandidate(ghostName == "Hantu", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Hantu +1 (Temperature_Based_Speed osobina)");
+end
+
+rule "Score_Trait_Goryo_CameraOnly"
+    salience 12
+when
+    DerivedTrait(traitName == "Camera_Only_DOTS")
+    $c : GhostCandidate(ghostName == "Goryo", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Goryo +1 (Camera_Only_DOTS osobina)");
+end
+
+rule "Score_Trait_Myling_QuietSteps"
+    salience 12
+when
+    DerivedTrait(traitName == "Quiet_Footsteps_During_Hunt")
+    $c : GhostCandidate(ghostName == "Myling", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Myling +1 (Quiet_Footsteps_During_Hunt osobina)");
+end
+
+rule "Score_Trait_Onryo_CandleTrigger"
+    salience 12
+when
+    DerivedTrait(traitName == "Candle_Extinguish_Trigger")
+    $c : GhostCandidate(ghostName == "Onryo", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Onryo +1 (Candle_Extinguish_Trigger osobina)");
+end
+
+rule "Score_Trait_TheTwins_DualInteract"
+    salience 12
+when
+    DerivedTrait(traitName == "Dual_Interactions")
+    $c : GhostCandidate(ghostName == "The Twins", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] The Twins +1 (Dual_Interactions osobina)");
+end
+
+rule "Score_Trait_Raiju_ElectronicsSpeed"
+    salience 12
+when
+    DerivedTrait(traitName == "Electronics_Speed_Boost")
+    $c : GhostCandidate(ghostName == "Raiju", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Raiju +1 (Electronics_Speed_Boost osobina)");
+end
+
+rule "Score_Trait_Obake_SixFinger"
+    salience 12
+when
+    DerivedTrait(traitName == "Six_Finger_Handprint")
+    $c : GhostCandidate(ghostName == "Obake", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Obake +1 (Six_Finger_Handprint osobina)");
+end
+
+rule "Score_Trait_Mimic_CopyGhosts"
+    salience 12
+when
+    DerivedTrait(traitName == "Copy_Other_Ghosts")
+    $c : GhostCandidate(ghostName == "The Mimic", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] The Mimic +1 (Copy_Other_Ghosts osobina)");
+end
+
+rule "Score_Trait_Moroi_CurseSpeed"
+    salience 12
+when
+    DerivedTrait(traitName == "Curse_And_Speed_Sanity")
+    $c : GhostCandidate(ghostName == "Moroi", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Moroi +1 (Curse_And_Speed_Sanity osobina)");
+end
+
+rule "Score_Trait_Deogen_PlayerTracking"
+    salience 12
+when
+    DerivedTrait(traitName == "Player_Tracking_And_Close_Slowdown")
+    $c : GhostCandidate(ghostName == "Deogen", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Deogen +1 (Player_Tracking_And_Close_Slowdown osobina)");
+end
+
+rule "Score_Trait_Thaye_Aging"
+    salience 12
+when
+    DerivedTrait(traitName == "Aging_Mechanic")
+    $c : GhostCandidate(ghostName == "Thaye", eliminated == false)
+then
+    $c.addScore(1); update($c);
+    System.out.println("[Nivo 2] Thaye +1 (Aging_Mechanic osobina)");
+end

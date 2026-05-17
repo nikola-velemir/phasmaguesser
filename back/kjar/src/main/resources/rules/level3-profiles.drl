@@ -1,0 +1,943 @@
+package com.ftn.sbnz.kjar.rules
+
+import com.ftn.sbnz.model.evidence.CurrentEvidence;
+import com.ftn.sbnz.model.evidence.Evidence;
+import com.ftn.sbnz.model.ghosts.GhostCandidate;
+import com.ftn.sbnz.model.ghosts.DerivedTrait;
+
+// ============================================================
+//  NIVO 3 — Profilno poklapanje (kombinovane osobine + dokazi)
+//
+//  Ovaj nivo traži kombinacije osobina koje zajedno čine
+//  prepoznatljiv profil pojedinog duha.
+//  Može preokrenuti rang iz Nivoa 2.
+//
+//  Težine:
+//    LOW       (+1)  — moguće ali nije karakteristično
+//    MEDIUM    (+2)  — čini duha verovatnim
+//    HIGH      (+3)  — karakteristično, snažno ukazuje
+//    DEFINITIVE(+5)  — jednoznačno identifikuje duha
+//
+//  salience 5 → uvek se izvršavaju poslednji
+// ============================================================
+
+
+// ════════════════════════════════════════════════════════════
+//  SPIRIT
+// ════════════════════════════════════════════════════════════
+
+// HIGH: Tamjan blokira duh duže od 90s + sva 3 dokaza prisutna
+rule "Profile_Spirit_HIGH_FullEvidenceAndSmudge"
+    salience 5
+when
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Spirit", eliminated == false)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Spirit profil HIGH (+3) — Svi dokazi + Long Smudge");
+end
+
+// MEDIUM: Long_Smudge_Timer potvrđen bez svih dokaza
+rule "Profile_Spirit_MEDIUM_SmudgeOnly"
+    salience 5
+when
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    $c : GhostCandidate(ghostName == "Spirit", eliminated == false, score < 4)
+then
+    $c.addScore(2);
+    $c.setProfileWeight("MEDIUM");
+    update($c);
+    System.out.println("[Nivo 3] Spirit profil MEDIUM (+2) — Long Smudge bez svih dokaza");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  WRAITH
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Nema otisaka u soli + sva 3 dokaza
+rule "Profile_Wraith_DEFINITIVE_NoSaltFullEvidence"
+    salience 5
+when
+    DerivedTrait(traitName == "No_Salt_Footprints")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Wraith", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Wraith DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Nema otisaka ali nisu svi dokazi potvrđeni
+rule "Profile_Wraith_HIGH_NoSalt"
+    salience 5
+when
+    DerivedTrait(traitName == "No_Salt_Footprints")
+    $c : GhostCandidate(ghostName == "Wraith", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Wraith profil HIGH (+3) — No Salt Footprints");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  PHANTOM
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Fotografija + nestanak + sva 3 dokaza
+rule "Profile_Phantom_DEFINITIVE_PhotoAndEvidence"
+    salience 5
+when
+    DerivedTrait(traitName == "Photo_Disappearance")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Phantom", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Phantom DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Photo_Disappearance potvrđen
+rule "Profile_Phantom_HIGH_PhotoDisappear"
+    salience 5
+when
+    DerivedTrait(traitName == "Photo_Disappearance")
+    $c : GhostCandidate(ghostName == "Phantom", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Phantom profil HIGH (+3) — Photo Disappearance");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  POLTERGEIST
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Baca više predmeta + sva 3 dokaza
+rule "Profile_Poltergeist_DEFINITIVE_MultiThrowFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Multi_Object_Throw")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Poltergeist", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Poltergeist DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Multi_Object_Throw bez svih dokaza
+rule "Profile_Poltergeist_HIGH_MultiThrow"
+    salience 5
+when
+    DerivedTrait(traitName == "Multi_Object_Throw")
+    $c : GhostCandidate(ghostName == "Poltergeist", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Poltergeist profil HIGH (+3) — Multi Object Throw");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  BANSHEE
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Krik na paraboličnom + sva 3 dokaza
+rule "Profile_Banshee_DEFINITIVE_ScreamFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Parabolic_Scream")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Banshee", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Banshee DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Parabolic_Scream potvrđen
+rule "Profile_Banshee_HIGH_Scream"
+    salience 5
+when
+    DerivedTrait(traitName == "Parabolic_Scream")
+    $c : GhostCandidate(ghostName == "Banshee", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Banshee profil HIGH (+3) — Parabolic Scream");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  JINN
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Ubrza uz osigurač + Freezing + UV + EMF
+rule "Profile_Jinn_DEFINITIVE_FuseBoxFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Speed_Increase_With_Fuse_Box")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES
+    )
+    $c : GhostCandidate(ghostName == "Jinn", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Jinn DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Ubrzanje uz osigurač potvrđeno
+rule "Profile_Jinn_HIGH_FuseBox"
+    salience 5
+when
+    DerivedTrait(traitName == "Speed_Increase_With_Fuse_Box")
+    $c : GhostCandidate(ghostName == "Jinn", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Jinn profil HIGH (+3) — Speed Increase With Fuse Box");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  MARE
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Lov u tami + sva 3 dokaza
+rule "Profile_Mare_DEFINITIVE_DarkAttackFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Attack_In_Darkness")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Mare", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Mare DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Attack_In_Darkness potvrđen
+rule "Profile_Mare_HIGH_DarkAttack"
+    salience 5
+when
+    DerivedTrait(traitName == "Attack_In_Darkness")
+    $c : GhostCandidate(ghostName == "Mare", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Mare profil HIGH (+3) — Attack In Darkness");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  REVENANT
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Visoka brzina + sva 3 dokaza
+rule "Profile_Revenant_DEFINITIVE_HighSpeedFull"
+    salience 5
+when
+    DerivedTrait(traitName == "High_Hunt_Speed")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES
+    )
+    $c : GhostCandidate(ghostName == "Revenant", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Revenant DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: High_Hunt_Speed bez svih dokaza
+rule "Profile_Revenant_HIGH_Speed"
+    salience 5
+when
+    DerivedTrait(traitName == "High_Hunt_Speed")
+    $c : GhostCandidate(ghostName == "Revenant", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Revenant profil HIGH (+3) — High Hunt Speed");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  SHADE
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Sramežljivost + sva 3 dokaza
+rule "Profile_Shade_DEFINITIVE_ShyFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Shy_In_Presence")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES
+    )
+    $c : GhostCandidate(ghostName == "Shade", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Shade DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Shy_In_Presence potvrđen
+rule "Profile_Shade_HIGH_Shy"
+    salience 5
+when
+    DerivedTrait(traitName == "Shy_In_Presence")
+    $c : GhostCandidate(ghostName == "Shade", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Shade profil HIGH (+3) — Shy In Presence");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  DEMON
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Rani lov + sva 3 dokaza
+rule "Profile_Demon_DEFINITIVE_EarlyHuntFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES
+    )
+    $c : GhostCandidate(ghostName == "Demon", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Demon DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Rani lov bez svih dokaza
+rule "Profile_Demon_HIGH_EarlyHunt"
+    salience 5
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    $c : GhostCandidate(ghostName == "Demon", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Demon profil HIGH (+3) — Early Hunt");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  YUREI
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Manipulacija vratima + sva 3 dokaza
+rule "Profile_Yurei_DEFINITIVE_DoorFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Door_Manipulation")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Yurei", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Yurei DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Door_Manipulation potvrđen
+rule "Profile_Yurei_HIGH_Door"
+    salience 5
+when
+    DerivedTrait(traitName == "Door_Manipulation")
+    $c : GhostCandidate(ghostName == "Yurei", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Yurei profil HIGH (+3) — Door Manipulation");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  ONI
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Visoka aktivnost + sva 3 dokaza
+rule "Profile_Oni_DEFINITIVE_HighActivityFull"
+    salience 5
+when
+    DerivedTrait(traitName == "High_Activity_Near_Player")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Oni", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Oni DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Visoka aktivnost bez svih dokaza
+rule "Profile_Oni_HIGH_Activity"
+    salience 5
+when
+    DerivedTrait(traitName == "High_Activity_Near_Player")
+    $c : GhostCandidate(ghostName == "Oni", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Oni profil HIGH (+3) — High Activity Near Player");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  YOKAI
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Glasovna osetljivost + sva 3 dokaza
+rule "Profile_Yokai_DEFINITIVE_VoiceFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Voice_Sensitivity")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.SPIRIT_BOX,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Yokai", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Yokai DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Voice_Sensitivity potvrđena
+rule "Profile_Yokai_HIGH_Voice"
+    salience 5
+when
+    DerivedTrait(traitName == "Voice_Sensitivity")
+    $c : GhostCandidate(ghostName == "Yokai", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Yokai profil HIGH (+3) — Voice Sensitivity");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  HANTU
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Brzina zavisi od temperature + sva 3 dokaza
+rule "Profile_Hantu_DEFINITIVE_TempSpeedFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Temperature_Based_Speed")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES
+    )
+    $c : GhostCandidate(ghostName == "Hantu", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Hantu DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Temperature_Based_Speed potvrđena
+rule "Profile_Hantu_HIGH_TempSpeed"
+    salience 5
+when
+    DerivedTrait(traitName == "Temperature_Based_Speed")
+    $c : GhostCandidate(ghostName == "Hantu", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Hantu profil HIGH (+3) — Temperature Based Speed");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  GORYO
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: DOTS samo kamera + sva 3 dokaza
+rule "Profile_Goryo_DEFINITIVE_CameraOnlyFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Camera_Only_DOTS")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Goryo", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Goryo DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Camera_Only_DOTS potvrđen
+rule "Profile_Goryo_HIGH_CameraOnly"
+    salience 5
+when
+    DerivedTrait(traitName == "Camera_Only_DOTS")
+    $c : GhostCandidate(ghostName == "Goryo", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Goryo profil HIGH (+3) — Camera Only DOTS");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  MYLING
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Tihi koraci + sva 3 dokaza
+rule "Profile_Myling_DEFINITIVE_QuietFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Quiet_Footsteps_During_Hunt")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_WRITING
+    )
+    $c : GhostCandidate(ghostName == "Myling", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Myling DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Quiet_Footsteps potvrđen
+rule "Profile_Myling_HIGH_Quiet"
+    salience 5
+when
+    DerivedTrait(traitName == "Quiet_Footsteps_During_Hunt")
+    $c : GhostCandidate(ghostName == "Myling", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Myling profil HIGH (+3) — Quiet Footsteps");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  ONRYO
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Trigger svećom + sva 3 dokaza
+rule "Profile_Onryo_DEFINITIVE_CandleFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Candle_Extinguish_Trigger")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Onryo", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Onryo DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Candle_Extinguish_Trigger potvrđen
+rule "Profile_Onryo_HIGH_Candle"
+    salience 5
+when
+    DerivedTrait(traitName == "Candle_Extinguish_Trigger")
+    $c : GhostCandidate(ghostName == "Onryo", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Onryo profil HIGH (+3) — Candle Extinguish Trigger");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  THE TWINS
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Dve interakcije + sva 3 dokaza
+rule "Profile_TheTwins_DEFINITIVE_DualFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Dual_Interactions")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "The Twins", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** The Twins DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Dual_Interactions potvrđene
+rule "Profile_TheTwins_HIGH_Dual"
+    salience 5
+when
+    DerivedTrait(traitName == "Dual_Interactions")
+    $c : GhostCandidate(ghostName == "The Twins", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] The Twins profil HIGH (+3) — Dual Interactions");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  RAIJU
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Ubrzanje uz elektroniku + sva 3 dokaza
+rule "Profile_Raiju_DEFINITIVE_ElectronicsFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Electronics_Speed_Boost")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Raiju", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Raiju DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Electronics_Speed_Boost potvrđen
+rule "Profile_Raiju_HIGH_Electronics"
+    salience 5
+when
+    DerivedTrait(traitName == "Electronics_Speed_Boost")
+    $c : GhostCandidate(ghostName == "Raiju", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Raiju profil HIGH (+3) — Electronics Speed Boost");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  OBAKE
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Šest prstiju + sva 3 dokaza
+rule "Profile_Obake_DEFINITIVE_SixFingerFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Six_Finger_Handprint")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.EMF_LEVEL_5,
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.GHOST_ORB
+    )
+    $c : GhostCandidate(ghostName == "Obake", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Obake DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Six_Finger_Handprint pronađen
+rule "Profile_Obake_HIGH_SixFinger"
+    salience 5
+when
+    DerivedTrait(traitName == "Six_Finger_Handprint")
+    $c : GhostCandidate(ghostName == "Obake", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Obake profil HIGH (+3) — Six Finger Handprint");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  THE MIMIC
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Kopira drugog duha + Ghost Orb (lažni 4. dokaz) + 3 prava dokaza
+rule "Profile_Mimic_DEFINITIVE_CopyFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Copy_Other_Ghosts")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.ULTRAVIOLET,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES,
+        confirmedEvidence contains Evidence.SPIRIT_BOX,
+        confirmedEvidence contains Evidence.GHOST_ORB   // lažni 4. dokaz
+    )
+    $c : GhostCandidate(ghostName == "The Mimic", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** The Mimic DEFINITIVAN PROFIL (+5) — 4 dokaza uključujući Ghost Orb ***");
+end
+
+// HIGH: Copy_Other_Ghosts potvrđeno
+rule "Profile_Mimic_HIGH_Copy"
+    salience 5
+when
+    DerivedTrait(traitName == "Copy_Other_Ghosts")
+    $c : GhostCandidate(ghostName == "The Mimic", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] The Mimic profil HIGH (+3) — Copy Other Ghosts");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  MOROI
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Sanity kletva + sva 3 dokaza
+rule "Profile_Moroi_DEFINITIVE_CurseFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Curse_And_Speed_Sanity")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.FREEZING_TEMPERATURES,
+        confirmedEvidence contains Evidence.SPIRIT_BOX
+    )
+    $c : GhostCandidate(ghostName == "Moroi", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Moroi DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Curse_And_Speed_Sanity potvrđen
+rule "Profile_Moroi_HIGH_Curse"
+    salience 5
+when
+    DerivedTrait(traitName == "Curse_And_Speed_Sanity")
+    $c : GhostCandidate(ghostName == "Moroi", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Moroi profil HIGH (+3) — Curse And Speed Sanity");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  DEOGEN
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Uvek prati igrača + usporava + sva 3 dokaza
+rule "Profile_Deogen_DEFINITIVE_TrackingFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Player_Tracking_And_Close_Slowdown")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.SPIRIT_BOX,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Deogen", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Deogen DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Player_Tracking_And_Close_Slowdown potvrđen
+rule "Profile_Deogen_HIGH_Tracking"
+    salience 5
+when
+    DerivedTrait(traitName == "Player_Tracking_And_Close_Slowdown")
+    $c : GhostCandidate(ghostName == "Deogen", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Deogen profil HIGH (+3) — Player Tracking And Close Slowdown");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  THAYE
+// ════════════════════════════════════════════════════════════
+
+// DEFINITIVE: Starenje mehanika + sva 3 dokaza
+rule "Profile_Thaye_DEFINITIVE_AgingFull"
+    salience 5
+when
+    DerivedTrait(traitName == "Aging_Mechanic")
+    $e : CurrentEvidence(
+        confirmedEvidence contains Evidence.GHOST_ORB,
+        confirmedEvidence contains Evidence.GHOST_WRITING,
+        confirmedEvidence contains Evidence.DOTS_PROJECTOR
+    )
+    $c : GhostCandidate(ghostName == "Thaye", eliminated == false)
+then
+    $c.addScore(5);
+    $c.setProfileWeight("DEFINITIVE");
+    update($c);
+    System.out.println("[Nivo 3] *** Thaye DEFINITIVAN PROFIL (+5) ***");
+end
+
+// HIGH: Aging_Mechanic potvrđena
+rule "Profile_Thaye_HIGH_Aging"
+    salience 5
+when
+    DerivedTrait(traitName == "Aging_Mechanic")
+    $c : GhostCandidate(ghostName == "Thaye", eliminated == false, score < 6)
+then
+    $c.addScore(3);
+    $c.setProfileWeight("HIGH");
+    update($c);
+    System.out.println("[Nivo 3] Thaye profil HIGH (+3) — Aging Mechanic");
+end
+
+
+// ════════════════════════════════════════════════════════════
+//  CROSS-GHOST NEGATIVE BODOVANJE
+//  Osobina koja ISKLJUČUJE određene duhove daje penalty
+// ════════════════════════════════════════════════════════════
+
+// Ako se vidi DOTS golim okom → Goryo je već eliminisan,
+// ali Shade (koji je sramežljiv) je malo verovatno uz visoku aktivnost
+rule "Penalty_Shade_HighActivity"
+    salience 5
+when
+    DerivedTrait(traitName == "High_Activity_Near_Player")
+    $c : GhostCandidate(ghostName == "Shade", eliminated == false)
+then
+    $c.addScore(-2);
+    update($c);
+    System.out.println("[Nivo 3] Shade -2 (High Activity nije karakteristično za Shade)");
+end
+
+// Yokai lovi samo uz glasove — ako nije lovio uz glasove, nije Yokai
+rule "Penalty_Yokai_NoVoiceTrigger"
+    salience 5
+when
+    not DerivedTrait(traitName == "Voice_Sensitivity")
+    $c : GhostCandidate(ghostName == "Yokai", eliminated == false)
+then
+    $c.addScore(-1);
+    update($c);
+    System.out.println("[Nivo 3] Yokai -1 (Voice Sensitivity nije primećena)");
+end
+
+// Jinn ne može smanjiti brzinu uz uključen osigurač — ako je duh spor uz osigurač, nije Jinn
+rule "Penalty_Jinn_SlowWithFuseBox"
+    salience 5
+when
+    HuntObservation(fuseBoxOn == true, ghostAcceleratedWithFuseBox == false)
+    $c : GhostCandidate(ghostName == "Jinn", eliminated == false)
+then
+    $c.addScore(-2);
+    update($c);
+    System.out.println("[Nivo 3] Jinn -2 (Nije ubrzao uz uključen osigurač)");
+end
+
+// Oni nikada ne pravi magle od disanja — ako je viđen dah, Oni je malo verovatno
+// (ovaj trait ostaje LOW jer nije definitivan)
+rule "Penalty_Oni_BreathVisible"
+    salience 5
+when
+    HuntObservation(breathVisibleInCold == false, freezingTemperatures == true)
+    $c : GhostCandidate(ghostName == "Oni", eliminated == false)
+then
+    // Oni nema breath puff — odsustvo je korisna potvrda, ali ne kazna
+    // Ovo pravilo ne menja skor (LOW signal)
+    System.out.println("[Nivo 3] Oni LOW signal — nema vidljivog daha (karakteristično za Oni)");
+end
