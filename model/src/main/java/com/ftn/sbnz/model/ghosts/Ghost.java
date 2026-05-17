@@ -3,6 +3,8 @@ package com.ftn.sbnz.model.ghosts;
 import java.io.Serializable;
 import java.util.Objects;
 
+import com.ftn.sbnz.model.evidence.Evidence;
+
 public final class Ghost implements Serializable {
     private String name;
     private Evidence evidence1;

@@ -1,4 +1,4 @@
-package com.ftn.sbnz.model.ghosts;
+package com.ftn.sbnz.model.evidence;
 
 public enum Evidence {
     EMF_LEVEL_5("EMF Level 5", "EMF5"),

@@ -3,7 +3,7 @@ package com.ftn.sbnz.service.config;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.ftn.sbnz.model.ghosts.Evidence;
+import com.ftn.sbnz.model.evidence.Evidence;
 import com.ftn.sbnz.model.ghosts.Ghost;
 
 public class GhostProvider {

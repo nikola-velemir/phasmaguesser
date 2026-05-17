@@ -6,7 +6,6 @@ import lombok.Value;
 public final class GhostIndetificationReqestDTO {
     private String evidence1;
     private String evidence2;
-    private String evidence3;
 
     public String getEvidence1() {
         return evidence1;
@@ -14,10 +13,6 @@ public final class GhostIndetificationReqestDTO {
 
     public String getEvidence2() {
         return evidence2;
-    }
-
-    public String getEvidence3() {
-        return evidence3;
     }
 
 }

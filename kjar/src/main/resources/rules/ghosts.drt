@@ -7,24 +7,31 @@ trait
 
 package com.ftn.sbnz.kjar.rules
 
+// ISPRAVLJENI IMPORTI DA SE POKLAPAJU SA TVOJIM GHOSTSERVICE
 import com.ftn.sbnz.model.ghosts.Ghost;
-import com.ftn.sbnz.model.ghosts.Evidence;
-import com.ftn.sbnz.model.ghosts.CurrentEvidence;
+import com.ftn.sbnz.model.evidence.Evidence;
+import com.ftn.sbnz.model.evidence.CurrentEvidence;
 
 template "ghost-indentification"
 
-rule "Indetify_@{ghostName}"
+rule "Filter_Evidence_@{ghostName}"
+    salience 100
 when
+    // 1. Pronađi duha i njegove fiksne dokaze
     $g: Ghost(name == "@{ghostName}", $ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
 
-    $input : CurrentEvidence(
-        (evidence1 == $ge1 || evidence1 == $ge2 || evidence1 == $ge3),
-        (evidence2 == $ge1 || evidence2 == $ge2 || evidence2 == $ge3),
-        (evidence3 == $ge1 || evidence3 == $ge2 || evidence3 == $ge3)
+    // 2. Uzmi unete dokaze
+    $input : CurrentEvidence()
+
+    // 3. Logika sažimanja:
+    // Prolazimo kroz unete dokaze. Ako u setu postoji BILO KOJI dokaz koji ovaj duh NEMA,
+    // pravilo za ovog duha će pasti. Ako duh ima sve dokaze iz seta, pravilo prolazi!
+    not (
+        $e : Evidence() from $input.getConfirmedEvidence() and
+        eval($e != $ge1 && $e != $ge2 && $e != $ge3)
     )
 then
-    System.out.println("Detektovan duh: " + $g.getName());
-    // Ovde možeš dodati logiku da se rezultat sačuva u neku globalnu listu
+    System.out.println("[SAŽIMANJE] Duh " + $g.getName() + " JE MOGUĆ na osnovu unetih dokaza!");
 end
 
 end template

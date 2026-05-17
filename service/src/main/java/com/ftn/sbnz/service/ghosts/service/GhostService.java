@@ -8,8 +8,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import com.ftn.sbnz.model.ghosts.CurrentEvidence;
-import com.ftn.sbnz.model.ghosts.Evidence;
+import com.ftn.sbnz.model.evidence.CurrentEvidence;
+import com.ftn.sbnz.model.evidence.Evidence;
 import com.ftn.sbnz.model.ghosts.Ghost;
 import com.ftn.sbnz.service.config.GhostProvider;
 import com.ftn.sbnz.service.ghosts.dto.GhostIndetificationReqestDTO;
@@ -37,9 +37,7 @@ public class GhostService {
             // Koristimo Evidence.valueOf() da pretvorimo String iz JSON-a u tvoj Enum
             CurrentEvidence currentEvidence = new CurrentEvidence(
                     Evidence.valueOf(reqest.getEvidence1().toUpperCase()),
-                    Evidence.valueOf(reqest.getEvidence2().toUpperCase()),
-                    Evidence.valueOf(reqest.getEvidence3().toUpperCase()));
-
+                    Evidence.valueOf(reqest.getEvidence2().toUpperCase()));
             // Ubacujemo trenutni dokaz u radnu memoriju
             ksession.insert(currentEvidence);
 
