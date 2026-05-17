@@ -13,14 +13,14 @@ import com.ftn.sbnz.model.ghosts.CurrentEvidence;
 
 template "ghost-indentification"
 
-rule "Indetify_@{ghostName}
+rule "Indetify_@{ghostName}"
 when
     $g: Ghost(name == "@{ghostName}", $ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
 
     $input : CurrentEvidence(
-        (ev1 == $ge1 || ev1 == $ge2 || ev1 == $ge3),
-        (ev2 == $ge1 || ev2 == $ge2 || ev2 == $ge3),
-        (ev3 == $ge1 || ev3 == $ge2 || ev3 == $ge3)
+        (evidence1 == $ge1 || evidence1 == $ge2 || evidence1 == $ge3),
+        (evidence2 == $ge1 || evidence2 == $ge2 || evidence2 == $ge3),
+        (evidence3 == $ge1 || evidence3 == $ge2 || evidence3 == $ge3)
     )
 then
     System.out.println("Detektovan duh: " + $g.getName());

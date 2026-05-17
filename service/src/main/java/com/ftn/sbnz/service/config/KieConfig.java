@@ -38,7 +38,7 @@ public class KieConfig {
             InputStream data = new ClassPathResource("rules/ghost-identities.xls").getInputStream();
             
             ExternalSpreadsheetCompiler converter = new ExternalSpreadsheetCompiler();
-            String drl = converter.compile(data, template, 3, 2);
+            String drl = converter.compile(data, template,2, 1);
             
             // 2. Umesto klasičnog KieHelper-a, napravićemo sesiju preko KieFileSystem-a
             // jer on bolje izoluje i postavlja properties u okviru same Spring aplikacije
