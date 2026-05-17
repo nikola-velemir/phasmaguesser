@@ -1,8 +1,8 @@
 package com.ftn.sbnz.kjar.rules
 
 import com.ftn.sbnz.model.evidence.CurrentEvidence;
-import com.ftn.sbnz.model.evidence.HuntObservation;
-import com.ftn.sbnz.model.ghosts.DerivedTrait;
+import com.ftn.sbnz.model.observations.HuntObservation;
+import com.ftn.sbnz.model.traits.DerivedTrait;
 
 // ============================================================
 //  NIVO 1 — Izvođenje osobina (Traits) iz HuntObservation
@@ -392,24 +392,25 @@ end
 //  DEOGEN — Player_Tracking_And_Close_Slowdown
 //  Uvek zna gde je igrač, ali usporava kada mu se približi
 // ────────────────────────────────────────────────────────────
-rule "Derive_Player_Tracking_And_Close_Slowdown"
+rule "Derive_Player_Tracking"
     salience 30
 when
-    HuntObservation(
-        ghostAlwaysKnewPlayerPosition == true,
-        ghostSlowedDownNearPlayer == true
-    )
-    not DerivedTrait(traitName == "Player_Tracking_And_Close_Slowdown")
+    HuntObservation(ghostAlwaysKnewPlayerPosition == true)
+    not DerivedTrait(traitName == "Player_Tracking")
 then
-    insert(new DerivedTrait("Player_Tracking_And_Close_Slowdown", "Always tracks player but slows when close"));
-    System.out.println("[Nivo 1] Izvedena osobina: Player_Tracking_And_Close_Slowdown");
+    insert(new DerivedTrait("Player_Tracking", "Ghost always knows where the player is"));
+    System.out.println("[Nivo 1] Izvedena osobina: Player_Tracking");
+end
+rule "Derive_Close_Slowdown"
+    salience 30
+when
+    HuntObservation(ghostSlowedDownNearPlayer == true)
+    not DerivedTrait(traitName == "Close_Slowdown")
+then
+    insert(new DerivedTrait("Close_Slowdown", "Ghost slows down significantly when close to the player"));
+    System.out.println("[Nivo 1] Izvedena osobina: Close_Slowdown");
 end
 
-
-// ────────────────────────────────────────────────────────────
-//  THAYE — Aging_Mechanic
-//  Aktivnost i brzina opadaju što više vremena prođe u lokaciji
-// ────────────────────────────────────────────────────────────
 rule "Derive_Aging_Mechanic"
     salience 30
 when
