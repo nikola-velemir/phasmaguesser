@@ -1,5 +1,6 @@
 package com.ftn.sbnz.service.ghosts.dto;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
@@ -13,9 +14,8 @@ public final class GhostIdentificationRequestDTO {
     //  DOKAZI (Evidence) — šalje frontend, stringovi iz Evidence enum-a
     //  Primer: "EMF_LEVEL_5", "GHOST_WRITING", "GHOST_ORB" ...
     // =========================================================================
-    private String evidence1;
-    private String evidence2;
-    private String evidence3;
+    private List<String> evidence;
+
 
     // =========================================================================
     //  SPIRIT — Long_Smudge_Timer

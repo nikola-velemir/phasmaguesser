@@ -1,6 +1,5 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { EvidenceBarComponent } from "./evidence-bar/evidence-bar";
+import { EvidenceBarComponent } from "./features/evidence-bar/evidence-bar";
 import { GhostContainer } from "./features/ghosts/component/ghost-container/ghost-container";
 
 @Component({
