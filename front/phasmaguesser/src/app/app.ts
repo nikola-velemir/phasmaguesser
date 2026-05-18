@@ -1,9 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { EvidenceBarComponent } from "./evidence-bar/evidence-bar";
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [EvidenceBarComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
