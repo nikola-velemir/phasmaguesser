@@ -1,37 +1,46 @@
 template header
 ghostName
-evidence1
-evidence2
-evidence3
-trait
 
-package com.ftn.sbnz.kjar.rules
+package com.ftn.sbnz.rules.templates
 
-// ISPRAVLJENI IMPORTI DA SE POKLAPAJU SA TVOJIM GHOSTSERVICE
-import com.ftn.sbnz.model.ghosts.Ghost;
-import com.ftn.sbnz.model.evidence.Evidence;
-import com.ftn.sbnz.model.evidence.CurrentEvidence;
+import com.ftn.sbnz.model.ghosts.Ghost
+import com.ftn.sbnz.model.ghosts.GhostCandidate
+import com.ftn.sbnz.model.evidence.Evidence
+import com.ftn.sbnz.model.evidence.CurrentEvidence
 
-template "ghost-indentification"
+dialect "java"
 
-rule "Filter_Evidence_@{ghostName}"
+template "ghost-identification"
+
+rule "Eliminate_Evidence_@{ghostName}"
     salience 100
+    no-loop true
 when
-    // 1. Pronađi duha i njegove fiksne dokaze
-    $g: Ghost(name == "@{ghostName}", $ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
+    $g : Ghost(
+        name == "@{ghostName}",
+        $ge1 : evidence1,
+        $ge2 : evidence2,
+        $ge3 : evidence3
+    )
 
-    // 2. Uzmi unete dokaze
+    $c : GhostCandidate(
+        ghostName == "@{ghostName}",
+        eliminated == false
+    )
+
     $input : CurrentEvidence()
 
-    // 3. Logika sažimanja:
-    // Prolazimo kroz unete dokaze. Ako u setu postoji BILO KOJI dokaz koji ovaj duh NEMA,
-    // pravilo za ovog duha će pasti. Ako duh ima sve dokaze iz seta, pravilo prolazi!
-    not (
-        $e : Evidence() from $input.getConfirmedEvidence() and
-        eval($e != $ge1 && $e != $ge2 && $e != $ge3)
-    )
+    exists Evidence(
+        this != $ge1,
+        this != $ge2,
+        this != $ge3
+    ) from $input.confirmedEvidence
+
 then
-    System.out.println("[SAŽIMANJE] Duh " + $g.getName() + " JE MOGUĆ na osnovu unetih dokaza!");
+    $c.eliminate();
+    update($c);
+
+    System.out.println("[ELIMINACIJA] Duh @{ghostName} uklonjen.");
 end
 
 end template
