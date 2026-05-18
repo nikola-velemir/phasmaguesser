@@ -28,7 +28,7 @@ export class EvidenceBarComponent implements OnInit {
     { name: 'Fingerprints', value: "ULTRAVIOLET", state: EvidenceState.Idle },
     { name: 'Ghost Orb', value: "GHOST_ORB", state: EvidenceState.Idle },
   ]);
-
+  expanded = true;
   evidences$ = this.evidencesSubject.asObservable();
 
   selectedEvidence$ = this.evidences$.pipe(
