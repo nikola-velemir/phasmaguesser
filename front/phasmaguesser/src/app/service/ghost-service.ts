@@ -163,7 +163,6 @@ export class GhostService {
       evidence,
       ...observation
     };
-    console.log(request);
     return this.http.post<IndentifitionResponse>(`${this.BASE_URL}/ghosts`, request).pipe(
       tap((response) => {
         const responseGhosts = response.ghosts;
@@ -180,8 +179,7 @@ export class GhostService {
           }
         })
           .filter(s => s !== null);
-        console.log(response)
-        console.log(updatedGhosts);
+
         this.ghostSubject.next(updatedGhosts);
       })
     );
