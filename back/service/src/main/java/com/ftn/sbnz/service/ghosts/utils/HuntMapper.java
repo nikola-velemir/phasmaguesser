@@ -5,16 +5,11 @@ import com.ftn.sbnz.model.evidence.Evidence;
 import com.ftn.sbnz.model.observations.HuntObservation;
 import com.ftn.sbnz.service.ghosts.dto.GhostIdentificationRequestDTO;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class HuntMapper {
 
-    /**
-     * Mapira DTO → HuntObservation.
-     * Sva polja su 1:1 preslikana. Polja koja frontend nije poslao
-     * ostaju na Lombok @Builder.Default vrednostima (false / 0 / null).
-     */
     public static HuntObservation mapToHuntObservation(GhostIdentificationRequestDTO dto) {
         HuntObservation obs = new HuntObservation();
 
@@ -112,21 +107,29 @@ public class HuntMapper {
      * Ignoriše nevalidne vrednosti uz upozorenje u logu.
      */
     public static CurrentEvidence mapToCurrentEvidence(GhostIdentificationRequestDTO dto) {
-        Set<Evidence> confirmed = new HashSet<>();
-
-        parseEvidence(dto.getEvidence1(), confirmed);
-        parseEvidence(dto.getEvidence2(), confirmed);
-        parseEvidence(dto.getEvidence3(), confirmed);
+        Set<Evidence> confirmed = dto.getEvidence()
+                                    .stream()
+                                    .map(e-> parseEvidence(e))
+                                    .collect(Collectors.toSet());
 
         return new CurrentEvidence(confirmed);
     }
 
-    private static void parseEvidence(String raw, Set<Evidence> target) {
-        if (raw == null || raw.isBlank()) return;
-        try {
-            target.add(Evidence.valueOf(raw.trim().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            System.err.println("[HuntMapper] Nepoznat dokaz ignorisan: '" + raw + "'");
+    // private static void parseEvidence(String raw, Set<Evidence> target) {
+    //     if (raw == null || raw.isBlank()) return;
+    //     try {
+    //         target.add(Evidence.valueOf(raw.trim().toUpperCase()));
+    //     } catch (IllegalArgumentException e) {
+    //         System.err.println("[HuntMapper] Nepoznat dokaz ignorisan: '" + raw + "'");
+    //     }
+    // }
+
+    private static Evidence parseEvidence(String evidenceString) {
+        Evidence ev = null;
+        if (evidenceString != null && !evidenceString.trim().isEmpty()) {
+            ev = Evidence.valueOf(evidenceString.toUpperCase());
         }
+        return ev;
+
     }
 }

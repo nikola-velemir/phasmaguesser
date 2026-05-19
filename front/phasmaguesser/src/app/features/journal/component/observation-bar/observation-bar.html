@@ -1,0 +1,201 @@
+<!-- hunt-observation.component.html -->
+<div class="flex w-full flex-col border-r border-zinc-800 bg-[#111111] p-5 text-zinc-100 shadow-2xl">
+
+    <!-- ── Header ──────────────────────────────────────────────────── -->
+    <button class="mb-4 border-b border-zinc-700 pb-4" (click)="expanded = !expanded">
+        <div class="flex items-center gap-3">
+            <!-- Ghost icon -->
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800">
+                <i class="ti ti-ghost text-violet-400 text-xl" aria-hidden="true"></i>
+            </div>
+
+            <div class="flex-1">
+                <h2 class="font-mono text-2xl font-bold uppercase tracking-[0.25em] text-zinc-300">
+                    Observations
+                </h2>
+            </div>
+
+            <span class="font-mono text-xs uppercase tracking-widest text-zinc-500">
+                {{ filledFields$ | async }} filled
+            </span>
+            <div class="text-zinc-400 transition-transform duration-300" [ngClass]="{
+        'rotate-180': expanded
+      }">
+                ▼
+            </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="mt-4 h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+            <div class="h-full rounded-full bg-violet-500 transition-all duration-300"
+                [style.width.%]="progressPercent$ | async"></div>
+        </div>
+    </button>
+
+
+    <!-- ── Sections ────────────────────────────────────────────────── -->
+    <div class="flex flex-col gap-3 overflow-hidden transition-all duration-300" [ngClass]="{
+      'max-h-[1000px] opacity-100': expanded,
+      'max-h-0 opacity-0': !expanded
+    }">
+
+        <div *ngFor="let section of sections" class="overflow-hidden rounded-xl border border-zinc-800 bg-[#1a1a1a]">
+
+            <!-- Section header button -->
+            <button (click)="toggleSection(section)"
+                class="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors duration-150 hover:bg-zinc-800">
+                <i [class]="section.icon + ' ' + section.iconColor + ' text-base'" aria-hidden="true"></i>
+
+                <span class="flex-1 font-mono text-sm font-medium uppercase tracking-wider text-zinc-300">
+                    {{ section.label }}
+                </span>
+
+                <!-- Badge -->
+                <span class="rounded-full px-2 py-0.5 font-mono text-xs" [ngClass]="{
+            'bg-zinc-700 text-zinc-400': filledCountForSection(section) === 0,
+            'bg-violet-900/60 text-violet-300': filledCountForSection(section) > 0
+          }">
+                    {{ filledCountForSection(section) }}/{{ section.items.length }}
+                </span>
+
+                <!-- Chevron -->
+                <div class="text-zinc-400 transition-transform duration-300"
+                    [ngClass]="{ 'rotate-180': section.expanded }">
+                    ▼
+                </div>
+            </button>
+
+
+            <!-- Section body -->
+            <div class="overflow-hidden transition-all duration-300" [ngClass]="{
+          'max-h-[2000px] opacity-100': section.expanded,
+          'max-h-0 opacity-0': !section.expanded
+        }">
+                <div class="divide-y divide-zinc-800 px-4">
+
+                    <ng-container *ngFor="let item of section.items">
+
+                        <!-- ── Toggle row ──────────────────────────────────────── -->
+                        <ng-container *ngIf="item.kind === 'toggle'">
+                            <button (click)="onToggleChange(
+                  item.config.field,
+                  !isChecked(item.config.field),
+                  item.config['revealsSectionId']
+                )" class="group flex w-full items-center gap-4 py-3 text-left transition-all duration-150">
+
+                                <!-- State circle -->
+                                <div class="relative flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200"
+                                    [ngClass]="{
+                    'border-zinc-600 bg-transparent':              !isChecked(item.config.field),
+                    'border-emerald-400 bg-emerald-500/20 shadow-[0_0_12px_rgba(74,222,128,0.5)]':
+                                                                    isChecked(item.config.field)
+                  }">
+                                    <div *ngIf="isChecked(item.config.field)"
+                                        class="h-2.5 w-2.5 rounded-full bg-emerald-400"></div>
+                                </div>
+
+                                <!-- Labels -->
+                                <div class="flex-1">
+                                    <span class="font-mono text-sm uppercase tracking-wider transition-all duration-200"
+                                        [ngClass]="{
+                      'text-zinc-400': !isChecked(item.config.field),
+                      'text-emerald-300': isChecked(item.config.field)
+                    }">
+                                        {{ item.config.label }}
+                                    </span>
+                                    <p *ngIf="item.config.hint" class="mt-0.5 font-mono text-xs text-zinc-600">
+                                        {{ item.config.hint }}
+                                    </p>
+                                </div>
+
+                            </button>
+                        </ng-container>
+
+
+                        <!-- ── Toggle-child row (conditional, indented) ───────── -->
+                        <ng-container *ngIf="item.kind === 'toggle-child'">
+                            <div class="overflow-hidden transition-all duration-200" [ngClass]="{
+                  'max-h-24 opacity-100': isSubRowVisible(item.parentSectionId),
+                  'max-h-0 opacity-0':   !isSubRowVisible(item.parentSectionId)
+                }">
+                                <button (click)="onToggleChange(item.config.field, !isChecked(item.config.field))"
+                                    class="group flex w-full items-center gap-4 py-3 pl-10 text-left transition-all duration-150">
+                                    <div class="relative flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all duration-200"
+                                        [ngClass]="{
+                      'border-zinc-600 bg-transparent':              !isChecked(item.config.field),
+                      'border-emerald-400 bg-emerald-500/20 shadow-[0_0_10px_rgba(74,222,128,0.4)]':
+                                                                      isChecked(item.config.field)
+                    }">
+                                        <div *ngIf="isChecked(item.config.field)"
+                                            class="h-2 w-2 rounded-full bg-emerald-400"></div>
+                                    </div>
+
+                                    <span class="font-mono text-xs uppercase tracking-wider transition-all duration-200"
+                                        [ngClass]="{
+                      'text-zinc-500': !isChecked(item.config.field),
+                      'text-emerald-300': isChecked(item.config.field)
+                    }">
+                                        {{ item.config.label }}
+                                    </span>
+                                </button>
+                            </div>
+                        </ng-container>
+
+
+                        <!-- ── Number input row ───────────────────────────────── -->
+                        <ng-container *ngIf="item.kind === 'number'">
+                            <div class="flex items-center gap-4 py-3">
+                                <div class="flex-1">
+                                    <span class="font-mono text-sm uppercase tracking-wider text-zinc-400">
+                                        {{ item.config.label }}
+                                    </span>
+                                    <p *ngIf="item.config.hint" class="mt-0.5 font-mono text-xs text-zinc-600">
+                                        {{ item.config.hint }}
+                                    </p>
+                                </div>
+                                <input type="number" [placeholder]="item.config['placeholder']"
+                                    [value]="getNumberValue(item.config.field)"
+                                    (input)="onNumberInput(item.config.field, $any($event.target).value)" min="0"
+                                    class="w-16 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-center font-mono text-sm text-zinc-200 placeholder-zinc-600 focus:border-violet-500 focus:outline-none" />
+                            </div>
+                        </ng-container>
+
+
+                        <!-- ── Select row ─────────────────────────────────────── -->
+                        <ng-container *ngIf="item.kind === 'select'">
+                            <div class="flex items-center gap-4 py-3">
+                                <span class="flex-1 font-mono text-sm uppercase tracking-wider text-zinc-400">
+                                    {{ item.config.label }}
+                                </span>
+                                <select [value]="getSelectValue(item.config.field)"
+                                    (change)="onSelectChange(item.config.field, $any($event.target).value)"
+                                    class="rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 font-mono text-sm text-zinc-200 focus:border-violet-500 focus:outline-none">
+                                    <option value="" class="bg-zinc-900">— select —</option>
+                                    <option *ngFor="let opt of item.config['options']" [value]="opt.value"
+                                        class="bg-zinc-900">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </ng-container>
+
+                    </ng-container>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- ── Footer actions ───────────────────────────────────────────── -->
+    <div class="mt-5 flex gap-3">
+        <button (click)="resetForm()"
+            class="rounded-lg w-full border border-zinc-700 px-4 py-2.5 font-mono text-sm uppercase tracking-wider text-zinc-400 transition-colors duration-150 hover:bg-zinc-700 hover:border-zinc-500 hover:text-zinc-200">
+            Reset
+        </button>
+
+
+    </div>
+
+</div>

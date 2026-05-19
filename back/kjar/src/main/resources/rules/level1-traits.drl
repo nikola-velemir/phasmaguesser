@@ -388,28 +388,36 @@ then
 end
 
 
-// ────────────────────────────────────────────────────────────
-//  DEOGEN — Player_Tracking_And_Close_Slowdown
-//  Uvek zna gde je igrač, ali usporava kada mu se približi
-// ────────────────────────────────────────────────────────────
-rule "Derive_Player_Tracking"
+// Ovo da pribazim, nez kako da handle
+// rule "Derive_Player_Tracking"
+//     salience 30
+// when
+//     HuntObservation(ghostAlwaysKnewPlayerPosition == true)
+//     not DerivedTrait(traitName == "Player_Tracking")
+// then
+//     insert(new DerivedTrait("Player_Tracking", "Ghost always knows where the player is"));
+//     System.out.println("[Nivo 1] Izvedena osobina: Player_Tracking");
+// end
+// rule "Derive_Close_Slowdown"
+//     salience 30
+// when
+//     HuntObservation(ghostSlowedDownNearPlayer == true)
+//     not DerivedTrait(traitName == "Close_Slowdown")
+// then
+//     insert(new DerivedTrait("Close_Slowdown", "Ghost slows down significantly when close to the player"));
+//     System.out.println("[Nivo 1] Izvedena osobina: Close_Slowdown");
+// end
+
+rule "Derive_Player_Tracking_And_Close_Slowdown"
     salience 30
 when
-    HuntObservation(ghostAlwaysKnewPlayerPosition == true)
-    not DerivedTrait(traitName == "Player_Tracking")
+    HuntObservation(ghostAlwaysKnewPlayerPosition == true, ghostSlowedDownNearPlayer == true)
+    not DerivedTrait(traitName == "Player_Tracking_And_Close_Slowdown")
 then
     insert(new DerivedTrait("Player_Tracking", "Ghost always knows where the player is"));
     System.out.println("[Nivo 1] Izvedena osobina: Player_Tracking");
 end
-rule "Derive_Close_Slowdown"
-    salience 30
-when
-    HuntObservation(ghostSlowedDownNearPlayer == true)
-    not DerivedTrait(traitName == "Close_Slowdown")
-then
-    insert(new DerivedTrait("Close_Slowdown", "Ghost slows down significantly when close to the player"));
-    System.out.println("[Nivo 1] Izvedena osobina: Close_Slowdown");
-end
+
 
 rule "Derive_Aging_Mechanic"
     salience 30

@@ -1,0 +1,41 @@
+<!-- ghost-card.component.html -->
+<div
+    class="group relative overflow-hidden rounded-xl border border-zinc-800 bg-[#171717] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-600 hover:bg-[#1d1d1d] hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+    <!-- Glow -->
+    <div class="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+        <div class="absolute -top-10 left-1/2 h-32 w-32 -translate-x-1/2 rounded-full bg-zinc-500/10 blur-3xl"></div>
+    </div>
+
+    <!-- SVG -->
+    <div class="relative z-10 flex flex-col items-center">
+
+        <div class="mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900">
+            <img src={{ghost.icon}}>
+        </div>
+
+        <h3 class="font-mono text-lg uppercase tracking-[0.2em] text-zinc-200">
+            {{ ghost.name }}
+        </h3>
+
+    <div
+        class="h-2 mt-4 w-full overflow-hidden rounded-full bg-zinc-800"
+      >
+
+        <!-- Bar fill -->
+        <div
+          class="h-full rounded-full transition-all duration-500"
+
+          [style.width.%]="ghost.confidence"
+
+          [ngClass]="{
+            'bg-red-500': ghost.confidence < 35,
+            'bg-yellow-500': ghost.confidence >= 35 && ghost.confidence < 70,
+            'bg-emerald-500': ghost.confidence >= 70
+          }"
+        ></div>
+
+      </div>
+
+    </div>
+    
+</div>

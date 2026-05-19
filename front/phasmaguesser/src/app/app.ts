@@ -1,9 +1,10 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { GhostContainer } from "./features/ghosts/component/ghost-container/ghost-container";
+import { JournalComponent } from "./features/journal/component/journal/journal";
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [GhostContainer, JournalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

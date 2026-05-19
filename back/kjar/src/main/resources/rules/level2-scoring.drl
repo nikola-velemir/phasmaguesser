@@ -8,81 +8,18 @@ import com.ftn.sbnz.model.traits.DerivedTrait;
 import com.ftn.sbnz.model.observations.HuntObservation;
 
 // ============================================================================
-//  NIVO 2 — Bodovanje dokaza + osobina + eliminacija
-//  salience 20 → posle Nivoa 1 (salience 30), pre Nivoa 3 (salience 5)
+//  NIVO 2 — Bodovanje dokaza i osobina
+//
+//  Eliminacija po dokazima je u ghosts.drt (Eliminate_Evidence_@{ghostName},
+//  salience 100). Ovde bodujemo samo kandidate koji su prošli taj filter.
+//
+//  salience 20 → posle Nivoa 1 (30) i template eliminacije (100),
+//                pre Nivoa 3 (5)
 // ============================================================================
 
 
 // ----------------------------------------------------------------------------
-//  KORAK 0 — Dinamička inicijalizacija kandidata (salience 150)
-//  Za svakog duha u bazi kreira GhostCandidate ako već ne postoji.
-// ----------------------------------------------------------------------------
-rule "Init_Ghost_Candidates_Dynamically"
-    salience 150
-when
-    $g : Ghost()
-    not GhostCandidate(ghostName == $g.name)
-then
-    insert(new GhostCandidate($g.getName()));
-    System.out.println("[Nivo 2 - INIT] Kreiran kandidat: " + $g.getName());
-end
-
-
-// ----------------------------------------------------------------------------
-//  KORAK 1 — Eliminacija po dokazima (-inf)
-//
-//  Ako je igrač potvrdio dokaz koji ovaj duh NE MOŽE imati,
-//  kandidat se eliminiše (eliminated = true, skor = -9999).
-// ----------------------------------------------------------------------------
-
-rule "Eliminate_Incompatible_Evidence"
-    salience 140
-when
-    $input : CurrentEvidence()
-    $e : Evidence() from $input.getConfirmedEvidence()
-    // Isti eval() pattern kao u ghosts.drt template-u — kompatibilno sa String poljima
-    $g : Ghost($ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
-    eval($e != $ge1 && $e != $ge2 && $e != $ge3)
-    $c : GhostCandidate(
-        ghostName == $g.name,
-        eliminated == false,
-        appliedRules not contains "Eliminated_By_Evidence"
-    )
-then
-    $c.eliminate();
-    $c.applyRule("Eliminated_By_Evidence");
-    update($c);
-    System.out.println("[Nivo 2 - ELIMINACIJA] " + $g.getName()
-        + " eliminisan — nema dokaz: " + $e);
-end
-
-
-// ----------------------------------------------------------------------------
-//  KORAK 1b — Specijalna hard-eliminacija: Wraith + otisak u soli
-//
-//  Wraith NIKADA ne ostavlja otiske u soli. Ako je otisak nađen,
-//  Wraith se eliminiše bez obzira na ostale dokaze.
-// ----------------------------------------------------------------------------
-
-rule "Eliminate_Wraith_Salt_Footprint"
-    salience 140
-when
-    HuntObservation(saltPlaced == true, saltFootprintFound == true)
-    $c : GhostCandidate(
-        ghostName == "Wraith",
-        eliminated == false,
-        appliedRules not contains "Eliminate_Wraith_Salt_Footprint"
-    )
-then
-    $c.eliminate();
-    $c.applyRule("Eliminate_Wraith_Salt_Footprint");
-    update($c);
-    System.out.println("[Nivo 2 - ELIMINACIJA] Wraith eliminisan — otisak u soli nađen (nemoguće za Wraith).");
-end
-
-
-// ----------------------------------------------------------------------------
-//  KORAK 2 — Bodovanje po potvrđenim dokazima (+1 po poklapanju)
+//  KORAK 1 — Bodovanje po potvrđenim dokazima (+1 po poklapanju)
 //
 //  Za svakog neelimisanog kandidata, za svaki potvrđeni dokaz koji taj
 //  duh može imati → +1. Svaki dokaz se broji samo jednom.
@@ -110,9 +47,7 @@ end
 
 
 // ----------------------------------------------------------------------------
-//  KORAK 3 — Bodovanje po izvedenim osobinama (+1 po poklapanju)
-//
-//  Originalna logika iz starog fajla — nepromenjena.
+//  KORAK 2 — Bodovanje po izvedenim osobinama (+1 po poklapanju)
 // ----------------------------------------------------------------------------
 
 rule "Score_Ghost_Traits_Dynamically"
