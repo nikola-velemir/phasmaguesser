@@ -5,7 +5,7 @@ import { BehaviorSubject, distinctUntilChanged, map, switchMap, take, tap } from
 
 import { Evidence } from './evidence';
 import { EvidenceState } from './evicence-state';
-import { GhostService } from '../../service/ghost-service';
+import { GhostService } from '../../../../service/ghost-service';
 
 @Component({
   selector: 'app-evidence-bar',
@@ -14,6 +14,10 @@ import { GhostService } from '../../service/ghost-service';
   templateUrl: './evidence-bar.html',
 })
 export class EvidenceBarComponent implements OnInit {
+  resetForm() {
+    const resetedEvidence = this.evidencesSubject.getValue().map(e => ({ ...e, state: EvidenceState.Idle }));
+    this.evidencesSubject.next(resetedEvidence)
+  }
 
   readonly EvidenceState = EvidenceState;
 
@@ -73,16 +77,10 @@ export class EvidenceBarComponent implements OnInit {
   ngOnInit(): void {
     this.selectedEvidence$.pipe(
       distinctUntilChanged((prev, curr) =>
-        JSON.stringify(prev) === JSON.stringify(curr)),
-      tap(e => console.log(e)),
-      switchMap(s => {
-        const requuest = { evidence: s.map(se => se.value) }
-        return this.ghostService.indetify(requuest)
-      })
+        JSON.stringify(prev) === JSON.stringify(curr))
     )
-      .subscribe((s) => {
-        console.log(s)
-      });
+      .subscribe(e => this.ghostService.setSelectedEvidence(e));
+
   }
 
   toggleEvidence(evidence: Evidence) {

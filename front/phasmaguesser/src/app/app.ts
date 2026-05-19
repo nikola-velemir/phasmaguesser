@@ -1,10 +1,10 @@
 import { Component, signal } from '@angular/core';
-import { EvidenceBarComponent } from "./features/evidence-bar/evidence-bar";
 import { GhostContainer } from "./features/ghosts/component/ghost-container/ghost-container";
+import { JournalComponent } from "./features/journal/component/journal/journal";
 
 @Component({
   selector: 'app-root',
-  imports: [EvidenceBarComponent, GhostContainer],
+  imports: [GhostContainer, JournalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

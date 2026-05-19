@@ -4,6 +4,8 @@ import { BehaviorSubject, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { IndentifitionRequest } from './indentification-request';
 import { IndentifitionResponse } from './indentification-response';
+import { Evidence } from '../features/journal/component/evidence-bar/evidence';
+import { Observation } from '../features/journal/component/observation-bar/observation';
 
 @Injectable({
   providedIn: 'root',
@@ -141,10 +143,27 @@ export class GhostService {
 
   private ghostSubject = new BehaviorSubject(this.ghosts);
 
+  private selectedEvidenceSubject = new BehaviorSubject<Evidence[]>([])
+  private observationSubject = new BehaviorSubject<Partial<Observation>>({})
   ghosts$ = this.ghostSubject.asObservable();
 
+  selectedEvicence$ = this.selectedEvidenceSubject.asObservable();
 
-  indetify(request: IndentifitionRequest) {
+  setObservation(o: Partial<Observation>) {
+    this.observationSubject.next(o)
+  }
+  setSelectedEvidence(e: Evidence[]) {
+    this.selectedEvidenceSubject.next(e);
+  }
+
+  indetify() {
+    const evidence = this.selectedEvidenceSubject.getValue().map(e => e.value);
+    const observation = this.observationSubject.getValue();
+    const request: IndentifitionRequest = {
+      evidence,
+      ...observation
+    };
+    console.log(request);
     return this.http.post<IndentifitionResponse>(`${this.BASE_URL}/ghosts`, request).pipe(
       tap((response) => {
         const responseGhosts = response.ghosts;
@@ -152,18 +171,20 @@ export class GhostService {
           const matchingGhostResponse = responseGhosts.find(
             (rg) => rg.name === localGhost.name
           );
-          if(!matchingGhostResponse) return null;
+          if (!matchingGhostResponse) return null;
           const clippedScore = Math.max(matchingGhostResponse.score, 0);
+          if (clippedScore == 0) return null;
           return {
             ...localGhost,
             confidence: clippedScore / response.totalScore * 100
           }
         })
-        .filter(s=> s !== null);
+          .filter(s => s !== null);
         console.log(response)
         console.log(updatedGhosts);
         this.ghostSubject.next(updatedGhosts);
       })
     );
   }
+
 }

@@ -211,6 +211,23 @@ then
     System.out.println("[Nivo 3 - KAZNA] Mare -3 (lov nije pokrenut u mraku)");
 end
 
+rule "Profile_Contradiction_Wraith_Footprint_Found"
+    salience 5
+when
+    HuntObservation(saltFootprintFound == true)
+    $c : GhostCandidate(
+        ghostName == "Wraith",
+        eliminated == false,
+        appliedRules not contains "Profile_Contradiction_Wraith_Footprint_Found"
+    )
+then
+    $c.addScore(-20); 
+
+    
+    $c.applyRule("Profile_Contradiction_Wraith_Footprint_Found");
+    update($c);
+    System.out.println("[Nivo 3 - PROTIVREČNOST] Wraith kažnjen sa -20 jer su pronađeni otisci u soli.");
+end
 
 // ============================================================================
 //  REVENANT
