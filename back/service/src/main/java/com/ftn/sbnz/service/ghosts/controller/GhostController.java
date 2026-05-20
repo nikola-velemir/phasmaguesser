@@ -20,12 +20,6 @@ public class GhostController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> indentify(@RequestBody GhostIdentificationRequestDTO request) {
-        try {
-            return ResponseEntity.ok(ghostService.indifyGhost(request));
-
-        } catch (Exception ex) {
-            return ResponseEntity.internalServerError().body("Greška: " + ex.getMessage());
-
-        }
+        return ResponseEntity.ok(ghostService.indifyGhost(request));
     }
 }

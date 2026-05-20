@@ -18,122 +18,122 @@ export class GhostService {
     {
       name: 'Spirit',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/c/c1/Spirit_Discovered.jpg/revision/latest?cb=20231115114542',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Wraith',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/c/c1/Wraith_Discovered.jpg/revision/latest?cb=20231115114549',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Phantom',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/2/27/Phantom_Discovered.jpg/revision/latest?cb=20231115114535',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Poltergeist',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/1/10/Poltergeist_Discovered.jpg/revision/latest?cb=20231115114536',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Banshee',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/2/26/Banshee_Discovered.jpg/revision/latest?cb=20231115114509',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Jinn',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/5/56/Jinn_Discovered.jpg/revision/latest?cb=20231115114529',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Mare',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/3/32/Mare_Discovered.jpg/revision/latest?cb=20231115114529',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Revenant',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/1/16/Revenant_Discovered.jpg/revision/latest?cb=20231115114538',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Shade',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/f/ff/Shade_Discovered.jpg/revision/latest?cb=20231115114541',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Demon',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/f/f5/Demon_Discovered.jpg/revision/latest?cb=20231115114516',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Yurei',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/3/31/Yurei_Discovered.jpg/revision/latest?cb=20231115114551',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Oni',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/8/86/Oni_Discovered.jpg/revision/latest?cb=20231115114533',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Yokai',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/2/27/Yokai_Discovered.jpg/revision/latest?cb=20231115114550',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Hantu',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/e/e0/Hantu_Discovered.jpg/revision/latest?cb=20231115114526',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Goryo',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/6/6b/Goryo_Discovered.jpg/revision/latest?cb=20231115114525',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Myling',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/e/e0/Myling_Discovered.jpg/revision/latest?cb=20231115114531',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Onryo',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/f/f3/Onryo_Discovered.jpg/revision/latest?cb=20231115114534',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'The Twins',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/f/f8/The_Twins_Discovered.jpg/revision/latest?cb=20231115114546',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Raiju',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/a/aa/Raiju_Discovered.jpg/revision/latest?cb=20231115114537',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Obake',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/7/7e/Obake_Discovered.jpg/revision/latest?cb=20231115114533',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'The Mimic',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/e/e0/The_Mimic_Discovered.jpg/revision/latest?cb=20231115114545',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Moroi',
-      icon: 'https://static.wikia.nocookie.net/phasmophobia/images/e/e0/The_Mimic_Discovered.jpg/revision/latest?cb=20231115114545',
-      confidence: 10
+      icon: 'https://static.wikia.nocookie.net/phasmophobia/images/9/95/Moroi_Discovered.jpg/revision/latest?cb=20231115114530',
+      confidence: 1/24 * 100
     },
     {
       name: 'Deogen',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/d/dd/Deogen_Discovered.jpg/revision/latest?cb=20231115114517',
-      confidence: 10
+      confidence: 1/24 * 100
     },
     {
       name: 'Thaye',
       icon: 'https://static.wikia.nocookie.net/phasmophobia/images/6/6a/Thaye_Discovered.jpg/revision/latest?cb=20231115114544',
-      confidence: 10
+      confidence: 1/24 * 100
     },
   ];
 
@@ -172,7 +172,7 @@ export class GhostService {
           );
           if (!matchingGhostResponse) return null;
           const clippedScore = Math.max(matchingGhostResponse.score, 0);
-          if (clippedScore == 0) return null;
+          if (clippedScore == 0 && responseGhosts.length != this.ghosts.length) return null;
           return {
             ...localGhost,
             confidence: clippedScore / response.totalScore * 100
