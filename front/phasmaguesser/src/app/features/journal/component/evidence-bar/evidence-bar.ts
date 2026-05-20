@@ -40,7 +40,9 @@ export class EvidenceBarComponent implements OnInit {
       evidences.filter(e => e.state === EvidenceState.Selected)
     )
   );
-
+  private calculateMaxEvidence() {
+    return this.orbSelected ? 4 : 3;
+  }
   constructor(private ghostService: GhostService) {
 
     this.selectedEvidence$.subscribe(selected => {
@@ -50,7 +52,7 @@ export class EvidenceBarComponent implements OnInit {
       }
 
       // exactly 3 selected
-      if (selected.length === 3) {
+      if (selected.length === this.calculateMaxEvidence()) {
         console.log("AAA")
         this.isUpdating = true;
 
@@ -74,10 +76,17 @@ export class EvidenceBarComponent implements OnInit {
       }
     });
   }
+  orbSelected = false;
   ngOnInit(): void {
     this.selectedEvidence$.pipe(
       distinctUntilChanged((prev, curr) =>
-        JSON.stringify(prev) === JSON.stringify(curr))
+        JSON.stringify(prev) === JSON.stringify(curr)
+      ),
+      tap(se => {
+        const foundOrb = se.find(e => e.value === "GHOST_ORB");
+        this.orbSelected = foundOrb !== undefined;
+        console.log(this.orbSelected)
+      })
     )
       .subscribe(e => this.ghostService.setSelectedEvidence(e));
 
@@ -102,7 +111,7 @@ export class EvidenceBarComponent implements OnInit {
         case EvidenceState.Idle:
 
           // Prevent selecting more than 3
-          if (selectedCount >= 3) {
+          if (selectedCount >= this.calculateMaxEvidence()) {
             return e;
           }
 
@@ -130,7 +139,7 @@ export class EvidenceBarComponent implements OnInit {
     ).length;
 
     // Auto eliminate remaining idle evidence
-    const finalUpdated = finalSelectedCount === 3
+    const finalUpdated = finalSelectedCount === this.calculateMaxEvidence()
       ? updated.map(e => {
 
         if (e.state === EvidenceState.Idle) {
