@@ -7,23 +7,6 @@ import com.ftn.sbnz.model.evidence.CurrentEvidence;
 import com.ftn.sbnz.model.traits.DerivedTrait;
 import com.ftn.sbnz.model.observations.HuntObservation;
 
-// ============================================================================
-//  NIVO 2 — Bodovanje dokaza i osobina
-//
-//  Eliminacija po dokazima je u ghosts.drt (Eliminate_Evidence_@{ghostName},
-//  salience 100). Ovde bodujemo samo kandidate koji su prošli taj filter.
-//
-//  salience 20 → posle Nivoa 1 (30) i template eliminacije (100),
-//                pre Nivoa 3 (5)
-// ============================================================================
-
-
-// ----------------------------------------------------------------------------
-//  KORAK 1 — Bodovanje po potvrđenim dokazima (+1 po poklapanju)
-//
-//  Za svakog neelimisanog kandidata, za svaki potvrđeni dokaz koji taj
-//  duh može imati → +1. Svaki dokaz se broji samo jednom.
-// ----------------------------------------------------------------------------
 
 rule "Score_Confirmed_Evidence"
     salience 20
@@ -41,14 +24,9 @@ then
     $c.addScore(1);
     $c.applyRule("Evidence_" + $e.toString());
     update($c);
-    System.out.println("[Nivo 2 - DOKAZ] " + $g.getName()
-        + " +1 za dokaz: " + $e);
+    System.out.println("[LEVEL 2 - Evidence] " + $g.getName()
+        + " +1 for evidence: " + $e);
 end
-
-
-// ----------------------------------------------------------------------------
-//  KORAK 2 — Bodovanje po izvedenim osobinama (+1 po poklapanju)
-// ----------------------------------------------------------------------------
 
 rule "Score_Ghost_Traits_Dynamically"
     salience 12
@@ -64,6 +42,6 @@ then
     $c.addScore(1);
     $c.applyRule($derivedName);
     update($c);
-    System.out.println("[Nivo 2 - OSOBINA] " + $g.getName()
-        + " +1 za osobinu: " + $derivedName);
+    System.out.println("[LEVEL 2 - Trait] " + $g.getName()
+        + " +1 for trait: " + $derivedName);
 end

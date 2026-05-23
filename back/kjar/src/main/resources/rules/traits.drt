@@ -20,7 +20,7 @@ when
     not DerivedTrait(traitName == "@{traitName}")
 then
     insert(new DerivedTrait("@{traitName}", "@{description}"));
-    System.out.println("[Nivo 1 - DRT] Izvedena osobina: @{traitName}");
+    System.out.println("[LEVEL 1 - Traits] Derived trait: @{traitName}");
 end
 
 end template

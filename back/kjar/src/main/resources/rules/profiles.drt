@@ -20,7 +20,6 @@ template "generic-profile-scoring"
 rule "@{ruleName}"
     salience 5
 when
-    // Šablon ovde direktno ubacuje uslov iz Excela
     @{condition}
     
     $c : GhostCandidate(
@@ -32,7 +31,7 @@ then
     $c.addScore(@{score});
     $c.applyRule("@{ruleName}");
     update($c);
-    System.out.println("[Nivo 3] @{logMessage}");
+    System.out.println("[LEVEL 3 - Scoring] @{logMessage}");
 end
 
 end template
