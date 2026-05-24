@@ -1,0 +1,26 @@
+template header
+ruleName
+constraints
+traitName
+description
+
+package com.ftn.sbnz.kjar.rules
+
+import com.ftn.sbnz.model.observations.HuntObservation;
+import com.ftn.sbnz.model.traits.DerivedTrait;
+
+dialect "java"
+
+template "dynamic-traits"
+
+rule "Derive_@{ruleName}"
+    salience 30
+when
+    HuntObservation( @{constraints} )
+    not DerivedTrait(traitName == "@{traitName}")
+then
+    insert(new DerivedTrait("@{traitName}", "@{description}"));
+    System.out.println("[LEVEL 1 - Traits] Derived trait: @{traitName}");
+end
+
+end template

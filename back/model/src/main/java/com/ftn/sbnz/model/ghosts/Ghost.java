@@ -1,47 +1,41 @@
 package com.ftn.sbnz.model.ghosts;
 
 import java.io.Serializable;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import com.ftn.sbnz.model.evidence.Evidence;
 
 public final class Ghost implements Serializable {
     private String name;
-    private Evidence evidence1;
-    private Evidence evidence2;
-    private Evidence evidence3;
-    private String trait;
+    private Set<Evidence> evidences;
+    private Set<String> traits;
 
     public Ghost() {
 
     }
 
-    public Ghost(String name, Evidence e1, Evidence e2, Evidence e3, String trait) {
+    public Ghost(String name, Set<Evidence> evidences, Set<String> traits) {
         this.name = name;
-        this.evidence1 = e1;
-        this.evidence2 = e2;
-        this.evidence3 = e3;
-        this.trait = trait;
+        this.evidences = evidences != null ? evidences : EnumSet.noneOf(Evidence.class);
+        this.traits = traits != null ? traits : new HashSet<>();
     }
 
     public String getName() {
         return name;
     }
 
-    public Evidence getEvidence1() {
-        return evidence1;
+    public boolean hasTrait(String t) {
+        return traits.contains(t);
     }
 
-    public Evidence getEvidence2() {
-        return evidence2;
+    public Set<Evidence> getEvidences(){
+        return this.evidences;
     }
-
-    public Evidence getEvidence3() {
-        return evidence3;
-    }
-
-    public String getTrait() {
-        return trait;
+    public Set<String> getTraits(){
+        return this.traits;
     }
 
     @Override

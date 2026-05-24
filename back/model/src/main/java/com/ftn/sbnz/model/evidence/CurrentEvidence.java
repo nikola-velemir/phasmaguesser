@@ -15,7 +15,7 @@ public final class CurrentEvidence implements Serializable {
         this.confirmedEvidence = EnumSet.noneOf(Evidence.class);
         if (evidences != null) {
             for (Evidence e : evidences) {
-                if (e != null) { // Preskačemo null vrednosti!
+                if (e != null) {
                     this.confirmedEvidence.add(e);
                 }
             }
@@ -25,7 +25,7 @@ public final class CurrentEvidence implements Serializable {
         this.confirmedEvidence = EnumSet.noneOf(Evidence.class);
         if (evidences != null) {
             for (Evidence e : evidences) {
-                if (e != null) { // Preskačemo null vrednosti!
+                if (e != null) {
                     this.confirmedEvidence.add(e);
                 }
             }

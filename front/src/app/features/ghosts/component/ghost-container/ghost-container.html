@@ -1,0 +1,14 @@
+<!-- app.component.html -->
+<div class="min-h-screen p-8">
+
+  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+
+    <app-ghost-card
+      *ngFor="let ghost of ghosts$ | async"
+      [ghost]="ghost"
+    />
+
+  </div>
+  <div class="h-48"></div>
+
+</div>

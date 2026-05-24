@@ -1,0 +1,47 @@
+package com.ftn.sbnz.kjar.rules
+
+import com.ftn.sbnz.model.ghosts.Ghost;
+import com.ftn.sbnz.model.ghosts.GhostCandidate;
+import com.ftn.sbnz.model.evidence.Evidence;
+import com.ftn.sbnz.model.evidence.CurrentEvidence;
+import com.ftn.sbnz.model.traits.DerivedTrait;
+import com.ftn.sbnz.model.observations.HuntObservation;
+
+
+rule "Score_Confirmed_Evidence"
+    salience 20
+when
+    $input : CurrentEvidence()
+    $e : Evidence() from $input.getConfirmedEvidence()
+    $g : Ghost($evidences : evidences)
+    eval($evidences.contains($e))
+    $c : GhostCandidate(
+        ghostName == $g.name,
+        eliminated == false,
+        appliedRules not contains ("Evidence_" + $e.toString())
+    )
+then
+    $c.addScore(1);
+    $c.applyRule("Evidence_" + $e.toString());
+    update($c);
+    System.out.println("[LEVEL 2 - Evidence] " + $g.getName()
+        + " +1 for evidence: " + $e);
+end
+
+rule "Score_Ghost_Traits_Dynamically"
+    salience 12
+when
+    DerivedTrait($derivedName : traitName)
+    $g : Ghost(traits contains $derivedName) // collection check
+    $c : GhostCandidate(
+        ghostName == $g.name,
+        eliminated == false,
+        appliedRules not contains $derivedName
+    )
+then
+    $c.addScore(1);
+    $c.applyRule($derivedName);
+    update($c);
+    System.out.println("[LEVEL 2 - Trait] " + $g.getName()
+        + " +1 for trait: " + $derivedName);
+end

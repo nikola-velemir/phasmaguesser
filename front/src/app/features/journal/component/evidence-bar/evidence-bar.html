@@ -1,0 +1,91 @@
+<!-- evidence-bar.html -->
+<div
+  class="flex w-full flex-col bg-[#111111] p-5 text-zinc-100 shadow-2xl transition-all duration-300">
+
+  <!-- Header -->
+  <button (click)="expanded = !expanded"
+    class="mb-2 flex items-center justify-between border-b border-zinc-700 pb-4 text-left">
+    <div>
+      <div class="flex flex-row gap-4 items-center">
+
+
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800">
+          <i class="ti ti-search text-violet-400 text-xl" aria-hidden="true"></i>
+        </div>
+        <h2 class="font-mono text-2xl font-bold uppercase tracking-[0.25em] text-zinc-300">
+          Evidence
+        </h2>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="text-zinc-400 transition-transform duration-300" [ngClass]="{
+        'rotate-180': expanded
+      }">
+      ▼
+    </div>
+  </button>
+
+  <!-- Expandable Content -->
+  <div class="overflow-hidden transition-all duration-300" [ngClass]="{
+      'max-h-[1000px] opacity-100': expanded,
+      'max-h-0 opacity-0': !expanded
+    }">
+
+    <!-- Evidence List -->
+    <div class="flex flex-col gap-2 pt-2">
+
+      <button *ngFor="let evidence of evidences$ | async" (click)="toggleEvidence(evidence)"
+        class="group flex items-center gap-4 rounded-md border border-zinc-800 bg-[#1a1a1a] px-4 py-3 text-left transition-all duration-150 hover:border-zinc-600 hover:bg-[#222222]">
+
+        <!-- Circle -->
+        <div class="relative flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-200"
+          [ngClass]="{
+            'border-zinc-500 bg-transparent':
+              evidence.state === EvidenceState.Idle,
+
+            'border-emerald-400 bg-emerald-500/20 shadow-[0_0_12px_rgba(74,222,128,0.5)]':
+              evidence.state === EvidenceState.Selected,
+
+            'border-red-400 bg-red-500/20 shadow-[0_0_12px_rgba(248,113,113,0.5)]':
+              evidence.state === EvidenceState.Eliminated
+          }">
+
+          <!-- Selected Dot -->
+          <div *ngIf="evidence.state === EvidenceState.Selected" class="h-2.5 w-2.5 rounded-full bg-emerald-400"></div>
+
+          <!-- Eliminated X -->
+          <div *ngIf="evidence.state === EvidenceState.Eliminated" class="font-bold text-red-400">
+            ✕
+          </div>
+
+        </div>
+
+        <!-- Label -->
+        <span class="relative font-mono text-sm uppercase tracking-wider transition-all duration-200" [ngClass]="{
+            'text-zinc-300':
+              evidence.state === EvidenceState.Idle,
+
+            'text-emerald-300':
+              evidence.state === EvidenceState.Selected,
+
+            'text-red-300 line-through decoration-2 decoration-red-500':
+              evidence.state === EvidenceState.Eliminated
+          }">
+          {{ evidence.name }}
+        </span>
+
+      </button>
+
+    </div>
+
+
+
+  </div>
+  <div class="mt-5 flex gap-3">
+    <button (click)="resetForm()"
+      class="rounded-lg w-full border border-zinc-700 px-4 py-2.5 font-mono text-sm uppercase tracking-wider text-zinc-400 transition-colors duration-150 hover:bg-zinc-700 hover:border-zinc-500 hover:text-zinc-200">
+      Reset
+    </button>
+  </div>
+</div>

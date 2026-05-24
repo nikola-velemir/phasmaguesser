@@ -149,7 +149,6 @@ rule "Derive_Shy_In_Presence"
     salience 30
 when
     HuntObservation(
-        multiplePlayersPresent == true,
         activityDroppedWithPlayers == true
     )
     not DerivedTrait(traitName == "Shy_In_Presence")
@@ -212,7 +211,6 @@ rule "Derive_High_Activity_Near_Player"
     salience 30
 when
     HuntObservation(
-        multiplePlayersPresent == true,
         activityIncreasedWithPlayers == true
     )
     not DerivedTrait(traitName == "High_Activity_Near_Player")

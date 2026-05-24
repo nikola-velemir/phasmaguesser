@@ -1,0 +1,58 @@
+<!-- ghost-card.component.html -->
+<div
+  class="group relative rounded-xl border border-zinc-800 bg-[#171717] p-5 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-600 hover:bg-violet-700 hover:shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+  <!-- Glow -->
+  <div class="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+    <div class="absolute -top-10 left-1/2 h-32 w-32 -translate-x-1/2 rounded-full bg-zinc-500/10 blur-3xl"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="relative z-10 flex flex-col items-center">
+    <!-- Icon -->
+    <div class="mb-4 flex h-24 w-24 items-center justify-center border border-zinc-700 bg-zinc-900">
+      <img [src]="ghost.icon" [alt]="ghost.name" class="h-20 w-20" />
+    </div>
+
+    <!-- Name -->
+    <h3 class="font-mono text-lg uppercase tracking-[0.2em] text-zinc-200">
+      {{ ghost.name }}
+    </h3>
+
+    <!-- Confidence Bar -->
+    <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-zinc-800">
+      <div class="h-full rounded-full transition-all duration-500" [style.width.%]="ghost.confidence" [ngClass]="{
+          'bg-red-500': ghost.confidence < 35,
+          'bg-yellow-500': ghost.confidence >= 35 && ghost.confidence < 70,
+          'bg-emerald-500': ghost.confidence >= 70
+        }"></div>
+    </div>
+
+    <!-- Accordion -->
+    <div class="relative mt-4 w-full" #accordionRef>
+      <button
+        class="flex w-full items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800/70"
+        (click)="toggleExpanded()">
+        <span>Ghost Description</span>
+        <i class="ti transition-transform duration-300" [ngClass]="{
+          'ti-chevron-down': !expanded,
+          'ti-chevron-up': expanded
+        }"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Teleported overlay — rendered at body level via cdkOverlayOrigin or a portal -->
+<ng-container *ngIf="expanded">
+  <div
+    class="fixed inset-0 z-1000"
+    (click)="expanded = false">
+  </div>
+  <div
+    class="fixed z-50 rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-sm leading-relaxed text-zinc-200 shadow-2xl"
+    [style.top.px]="dropdownTop"
+    [style.left.px]="dropdownLeft"
+    [style.width.px]="dropdownWidth">
+    {{ ghost.description }}
+  </div>
+</ng-container>
