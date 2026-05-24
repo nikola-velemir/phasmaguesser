@@ -32,7 +32,7 @@ rule "Score_Ghost_Traits_Dynamically"
     salience 12
 when
     DerivedTrait($derivedName : traitName)
-    $g : Ghost(trait == $derivedName)
+    $g : Ghost(traits contains $derivedName) // collection check
     $c : GhostCandidate(
         ghostName == $g.name,
         eliminated == false,

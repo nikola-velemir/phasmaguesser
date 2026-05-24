@@ -37,13 +37,13 @@ public class IndentificatorService {
             ksession.insert(currentEvidence);
 
             if (huntObservation != null) {
-                System.out.println("SBNZ: Ubacujem HuntObservation u sesiju...");
+                System.out.println("SYS: Inserting HuntObservation...");
                 ksession.insert(huntObservation);
             }
 
-            System.out.println("SBNZ: Pokrećem rezoner za identifikaciju...");
+            System.out.println("Beggining reasoning...");
             int firedRules = ksession.fireAllRules();
-            System.out.println("SBNZ: Broj okinutih pravila: " + firedRules);
+            System.out.println("Number of rules fired: " + firedRules);
 
             List<GhostCandidate> candidates = getCandidates(ksession);
             return getSortedResult(candidates);
@@ -67,7 +67,6 @@ public class IndentificatorService {
             return active;
         }
 
-        // Svi eliminisani — vrati ih sortirane po skoru da frontend vidi rang
         return candidates.stream()
                 .sorted(byScoreDesc)
                 .collect(Collectors.toList());

@@ -53,7 +53,7 @@ export class EvidenceBarComponent implements OnInit {
 
       // exactly 3 selected
       if (selected.length === this.calculateMaxEvidence()) {
-        console.log("AAA")
+
         this.isUpdating = true;
 
         const updated = this.evidencesSubject.value.map(e => {
@@ -85,7 +85,6 @@ export class EvidenceBarComponent implements OnInit {
       tap(se => {
         const foundOrb = se.find(e => e.value === "GHOST_ORB");
         this.orbSelected = foundOrb !== undefined;
-        console.log(this.orbSelected)
       })
     )
       .subscribe(e => this.ghostService.setSelectedEvidence(e));

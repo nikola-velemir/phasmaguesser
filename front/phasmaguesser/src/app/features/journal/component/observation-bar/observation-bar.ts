@@ -489,7 +489,6 @@ export class ObservationBar implements OnInit, OnDestroy {
     if (s.spiritBoxResponseReceived)
       lines.push(`- Spirit box response received${s.playerSanityDroppedFastAfterResponse ? ' (sanity dropped fast after)' : ''}`);
 
-    console.log(lines.join('\n'));
     // Emit or route as needed in the real app
   }
 
