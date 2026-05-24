@@ -13,8 +13,8 @@ rule "Score_Confirmed_Evidence"
 when
     $input : CurrentEvidence()
     $e : Evidence() from $input.getConfirmedEvidence()
-    $g : Ghost($ge1: evidence1, $ge2: evidence2, $ge3: evidence3)
-    eval($e == $ge1 || $e == $ge2 || $e == $ge3)
+    $g : Ghost($evidences : evidences)
+    eval($evidences.contains($e))
     $c : GhostCandidate(
         ghostName == $g.name,
         eliminated == false,

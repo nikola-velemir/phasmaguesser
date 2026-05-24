@@ -18,11 +18,8 @@ rule "Eliminate_Evidence_@{ghostName}"
 when
     $g : Ghost(
         name == "@{ghostName}",
-        $ge1 : evidence1,
-        $ge2 : evidence2,
-        $ge3 : evidence3
+        $evidences : evidences
     )
-
     $c : GhostCandidate(
         ghostName == "@{ghostName}",
         eliminated == false
@@ -31,9 +28,7 @@ when
     $input : CurrentEvidence()
 
     exists Evidence(
-        this != $ge1,
-        this != $ge2,
-        this != $ge3
+        !$evidences.contains(this)
     ) from $input.confirmedEvidence
 
 then
