@@ -44,7 +44,7 @@ public class HuntObservation implements Serializable {
     private boolean activityDeclinedOverTime;
     private boolean ghostSpeedDeclinedOverTime;
     private String ghostActivityLevel;
-
+    private boolean modelChangingDuringHunt;
     public HuntObservation() {
     }
 
@@ -358,5 +358,13 @@ public class HuntObservation implements Serializable {
 
     public void setGhostSpeedDeclinedOverTime(boolean ghostSpeedDeclinedOverTime) {
         this.ghostSpeedDeclinedOverTime = ghostSpeedDeclinedOverTime;
+    }
+
+    public boolean isModelChangingDuringHunt() {
+        return modelChangingDuringHunt;
+    }
+
+    public void setModelChangingDuringHunt(boolean modelChangingDuringHunt) {
+        this.modelChangingDuringHunt = modelChangingDuringHunt;
     }
 }
