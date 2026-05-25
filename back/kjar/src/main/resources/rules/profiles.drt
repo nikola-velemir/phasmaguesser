@@ -12,6 +12,7 @@ import com.ftn.sbnz.model.evidence.Evidence;
 import com.ftn.sbnz.model.observations.HuntObservation;
 import com.ftn.sbnz.model.ghosts.GhostCandidate;
 import com.ftn.sbnz.model.traits.DerivedTrait;
+import com.ftn.sbnz.model.ghosts.GhostEliminated;
 
 dialect "java"
 
@@ -21,16 +22,11 @@ rule "@{ruleName}"
     salience 5
 when
     @{condition}
-    
-    $c : GhostCandidate(
-        ghostName == "@{ghostName}",
-        eliminated == false,
-        appliedRules not contains "@{ruleName}"
-    )
+    Ghost(name == "@{ghostName}")
+    not GhostEliminated(ghostName == "@{ghostName}")
+    not ProfileMatch(ghostName == "@{ghostName}", ruleName == "@{ruleName}")
 then
-    $c.addScore(@{score});
-    $c.applyRule("@{ruleName}");
-    update($c);
+    insert(new ProfileMatch("@{ghostName}", "@{ruleName}", @{score}));
     System.out.println("[LEVEL 3 - Scoring] @{logMessage}");
 end
 

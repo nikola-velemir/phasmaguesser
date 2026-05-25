@@ -27,7 +27,6 @@ public class IndentificatorService {
         try {
             ksession = (KieSession) context.getBean("templateGhostSession");
 
-            // Ubaci Ghost + GhostCandidate — kandidate ubacuje SERVIS, ne Drools pravila
             List<Ghost> staticGhosts = GhostProvider.getStaticGhostsKnowledgeBase();
             for (Ghost g : staticGhosts) {
                 ksession.insert(g);

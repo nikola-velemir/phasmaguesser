@@ -4,11 +4,10 @@ import java.io.Serializable;
 
 public class HuntObservation implements Serializable {
 
-    // == Polja iz pravila ==
     private boolean freezingTemperatures;
     private boolean ghostMovingFastInCold;
     private boolean incenseUsed;
-    private Integer secondsUntilHuntAfterIncense; // null ako nije lovio
+    private Integer secondsUntilHuntAfterIncense;
 
     private boolean saltPlaced;
     private boolean saltFootprintFound;
@@ -24,7 +23,7 @@ public class HuntObservation implements Serializable {
     private boolean multiplePlayersPresent;
     private boolean activityDroppedWithPlayers;
     private boolean huntAtHighSanity;
-    private Integer secondsBetweenHunts; // null ako nema podataka
+    private Integer secondsBetweenHunts;
     private boolean doorSlammedAndLockedInRoom;
     private boolean activityIncreasedWithPlayers;
     private boolean huntTriggeredByVoice;
@@ -46,7 +45,6 @@ public class HuntObservation implements Serializable {
     private boolean ghostSpeedDeclinedOverTime;
     private String ghostActivityLevel;
 
-    // == Prazan konstruktor ==
     public HuntObservation() {
     }
 
@@ -58,7 +56,6 @@ public class HuntObservation implements Serializable {
         this.ghostActivityLevel = ghostActivityLevel;
     }
 
-    // == Getteri i Setteri ==
     public boolean isFreezingTemperatures() {
         return freezingTemperatures;
     }
