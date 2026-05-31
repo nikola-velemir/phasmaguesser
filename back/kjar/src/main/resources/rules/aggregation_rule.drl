@@ -1,0 +1,34 @@
+package com.ftn.sbnz.kjar.rules
+
+
+import com.ftn.sbnz.model.evidence.CurrentEvidence;
+import com.ftn.sbnz.model.observations.HuntObservation;
+import com.ftn.sbnz.model.ghosts.GhostCandidate;
+import com.ftn.sbnz.model.ghosts.GhostEliminated;
+import com.ftn.sbnz.model.evidence.EvidenceMatch;
+import com.ftn.sbnz.model.traits.TraitMatch;
+import com.ftn.sbnz.model.ghosts.ProfileMatch;
+
+
+
+rule "Compute_Final_Score"
+    salience -10
+when
+   $c : GhostCandidate($name : ghostName, eliminated == false)
+not GhostEliminated(ghostName == $name)
+accumulate(
+    EvidenceMatch(ghostName == $name);
+    $eScore : count()
+)
+    accumulate(
+        TraitMatch(ghostName == $name);
+        $tScore : count()
+    )
+    accumulate(
+        ProfileMatch(ghostName == $name, $pts : score);
+        $pScore : sum($pts)     // profiles carry variable weights
+    )
+then
+    $c.setScore((int)($eScore + $tScore + $pScore));
+    update($c);
+end

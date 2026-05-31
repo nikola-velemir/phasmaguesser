@@ -39,6 +39,8 @@ public class KieSessionConfig {
             String profileTemplateDrl = extractProfileTemplate();
             kfs.write("src/main/resources/rules/profiles_compiled.drl", profileTemplateDrl);
 
+            kfs.write(new ClassPathResource("rules/aggregation_rule.drl"));
+
             KieBuilder kieBuilder = ks.newKieBuilder(kfs);
             kieBuilder.buildAll();
 
@@ -55,8 +57,7 @@ public class KieSessionConfig {
     }
 
     private String extractGhostTemplate() throws IOException {
-        // 1. Kompajliranje šablona
-        return TemplateExtractor.extractTemplateAsDrl("rules/ghosts.drt", "rules/ghost-identities.xls");
+        return TemplateExtractor.extractTemplateAsDrl("rules/ghosts.drt", "rules/ghosts.xls");
     }
 
     private String extractProfileTemplate() throws IOException {
@@ -64,7 +65,6 @@ public class KieSessionConfig {
     }
 
     private String extractTraitsTemplate() throws IOException {
-        // 1. Kompajliranje šablona
         return TemplateExtractor.extractTemplateAsDrl("rules/traits.drt", "rules/traits.xls");
     }
 }

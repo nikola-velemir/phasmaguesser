@@ -27,7 +27,6 @@ public class IndentificatorService {
         try {
             ksession = (KieSession) context.getBean("templateGhostSession");
 
-            // Ubaci Ghost + GhostCandidate — kandidate ubacuje SERVIS, ne Drools pravila
             List<Ghost> staticGhosts = GhostProvider.getStaticGhostsKnowledgeBase();
             for (Ghost g : staticGhosts) {
                 ksession.insert(g);
@@ -57,12 +56,14 @@ public class IndentificatorService {
 
     private List<GhostCandidate> getSortedResult(List<GhostCandidate> candidates) {
         Comparator<GhostCandidate> byScoreDesc = Comparator.comparingInt(GhostCandidate::getScore).reversed();
-
         List<GhostCandidate> active = candidates.stream()
-                .filter(c -> !c.isEliminated())
+                .filter(c -> c.getScore() > 0)
                 .sorted(byScoreDesc)
                 .collect(Collectors.toList());
-
+        // boolean isAllGhosts = GhostProvider.getGhostNumber() == active.size();
+        // if(isAllGhosts){
+        //     active = candidates
+        // }
         if (!active.isEmpty()) {
             return active;
         }

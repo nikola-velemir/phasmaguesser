@@ -58,6 +58,10 @@ public final class GhostCandidate {
 
     private boolean isDefinitive = false; // Inicijalno je false
 
+    public void setScore(int score) {
+        this.score = score;
+    }
+
     public boolean isDefinitive() {
         return isDefinitive;
     }

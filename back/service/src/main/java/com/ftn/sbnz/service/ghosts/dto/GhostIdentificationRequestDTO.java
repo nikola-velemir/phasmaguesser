@@ -9,12 +9,7 @@ import lombok.extern.jackson.Jacksonized;
 @Builder
 @Jacksonized
 public final class GhostIdentificationRequestDTO {
-
-    // =========================================================================
-    //  DOKAZI (Evidence) — šalje frontend, stringovi iz Evidence enum-a
-    //  Primer: "EMF_LEVEL_5", "GHOST_WRITING", "GHOST_ORB" ...
-    // =========================================================================
-    private List<String> evidence;
+  private List<String> evidence;
 
 
     // =========================================================================
@@ -83,7 +78,6 @@ public final class GhostIdentificationRequestDTO {
     // =========================================================================
     //  SHADE — Shy_In_Presence
     //  ONI   — High_Activity_Near_Player
-    //  (dele ista polja, suprotni efekti)
     // =========================================================================
     @Builder.Default
     private boolean multiplePlayersPresent = false;

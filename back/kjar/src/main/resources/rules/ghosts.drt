@@ -7,6 +7,8 @@ import com.ftn.sbnz.model.ghosts.Ghost
 import com.ftn.sbnz.model.ghosts.GhostCandidate
 import com.ftn.sbnz.model.evidence.Evidence
 import com.ftn.sbnz.model.evidence.CurrentEvidence
+import com.ftn.sbnz.model.ghosts.GhostEliminated
+
 
 dialect "java"
 
@@ -24,18 +26,12 @@ when
         ghostName == "@{ghostName}",
         eliminated == false
     )
-
     $input : CurrentEvidence()
-
-    exists Evidence(
-        !$evidences.contains(this)
-    ) from $input.confirmedEvidence
-
+    exists Evidence(!$evidences.contains(this)) from $input.confirmedEvidence
+    not GhostEliminated(ghostName == "@{ghostName}")   // idempotent
 then
-    $c.eliminate();
-    update($c);
-
-    System.out.println("[ELIMINATION] Ghost @{ghostName} eliminated due to evidence.");
+    insert(new GhostEliminated("@{ghostName}", "evidence mismatch"));
+    System.out.println("[ELIMINATION] @{ghostName} eliminated.");
 end
 
 end template

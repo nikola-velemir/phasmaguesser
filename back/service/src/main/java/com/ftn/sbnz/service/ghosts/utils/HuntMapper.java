@@ -114,16 +114,6 @@ public class HuntMapper {
 
         return new CurrentEvidence(confirmed);
     }
-
-    // private static void parseEvidence(String raw, Set<Evidence> target) {
-    //     if (raw == null || raw.isBlank()) return;
-    //     try {
-    //         target.add(Evidence.valueOf(raw.trim().toUpperCase()));
-    //     } catch (IllegalArgumentException e) {
-    //         System.err.println("[HuntMapper] Nepoznat dokaz ignorisan: '" + raw + "'");
-    //     }
-    // }
-
     private static Evidence parseEvidence(String evidenceString) {
         Evidence ev = null;
         if (evidenceString != null && !evidenceString.trim().isEmpty()) {
