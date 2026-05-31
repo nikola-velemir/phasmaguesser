@@ -13,6 +13,7 @@ import com.ftn.sbnz.model.observations.HuntObservation;
 import com.ftn.sbnz.model.ghosts.GhostCandidate;
 import com.ftn.sbnz.model.traits.DerivedTrait;
 import com.ftn.sbnz.model.ghosts.GhostEliminated;
+import com.ftn.sbnz.model.ghosts.Ghost;
 
 dialect "java"
 

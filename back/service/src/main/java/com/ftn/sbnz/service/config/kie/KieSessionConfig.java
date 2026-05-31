@@ -57,7 +57,7 @@ public class KieSessionConfig {
     }
 
     private String extractGhostTemplate() throws IOException {
-        return TemplateExtractor.extractTemplateAsDrl("rules/ghosts.drt", "rules/ghost-identities.xls");
+        return TemplateExtractor.extractTemplateAsDrl("rules/ghosts.drt", "rules/ghosts.xls");
     }
 
     private String extractProfileTemplate() throws IOException {

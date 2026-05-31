@@ -8,7 +8,7 @@ import com.ftn.sbnz.model.traits.DerivedTrait;
 import com.ftn.sbnz.model.observations.HuntObservation;
 import com.ftn.sbnz.model.evidence.EvidenceMatch;
 import com.ftn.sbnz.model.ghosts.GhostEliminated;
-
+import com.ftn.sbnz.model.traits.TraitMatch;
 
 rule "Score_Confirmed_Evidence"
     salience 20

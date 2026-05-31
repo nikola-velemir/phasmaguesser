@@ -37,7 +37,7 @@ public class GhostProvider {
             new Ghost("Hantu", Set.of(Evidence.ULTRAVIOLET, Evidence.GHOST_ORB, Evidence.FREEZING_TEMPERATURES),
                     Set.of("Temperature_Based_Speed")),
             new Ghost("Goryo", Set.of(Evidence.EMF_LEVEL_5, Evidence.ULTRAVIOLET, Evidence.DOTS_PROJECTOR),
-                    Set.of("Camera_Only_DOTS")),
+                    Set.of("Camera_Only_DOTS")), 
             new Ghost("Myling", Set.of(Evidence.EMF_LEVEL_5, Evidence.ULTRAVIOLET, Evidence.GHOST_WRITING),
                     Set.of("Quiet_Footsteps_During_Hunt")),
             new Ghost("Onryo", Set.of(Evidence.GHOST_ORB, Evidence.FREEZING_TEMPERATURES, Evidence.SPIRIT_BOX),
@@ -55,7 +55,7 @@ public class GhostProvider {
             new Ghost("Moroi", Set.of(Evidence.GHOST_WRITING, Evidence.FREEZING_TEMPERATURES, Evidence.SPIRIT_BOX),
                     Set.of("Curse_And_Speed_Sanity")),
             new Ghost("Deogen", Set.of(Evidence.GHOST_WRITING, Evidence.SPIRIT_BOX, Evidence.DOTS_PROJECTOR),
-                    Set.of("Player_Tracking_And_Close_Slowdown")),
+                    Set.of("Player_Tracking","Close_Slowdown")),
             new Ghost("Thaye", Set.of(Evidence.GHOST_ORB, Evidence.GHOST_WRITING, Evidence.DOTS_PROJECTOR),
                     Set.of("Aging_Mechanic"))
 
