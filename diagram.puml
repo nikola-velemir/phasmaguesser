@@ -1,0 +1,223 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam packageStyle rectangle
+hide empty methods
+set namespaceSeparator ::
+
+' ── Packages ────────────────────────────────────────────────
+
+
+  enum Evidence {
+    EMF_LEVEL_5
+    ULTRAVIOLET
+    GHOST_WRITING
+    GHOST_ORB
+    FREEZING_TEMPERATURES
+    SPIRIT_BOX
+    DOTS_PROJECTOR
+    --
+    + displayName : String
+    + shortCode   : String
+    --
+    + getDisplayName() : String
+    + getShortCode()   : String
+    + {static} fromString(text : String) : Evidence
+  }
+
+  class CurrentEvidence {
+    - confirmedEvidence : Set<Evidence>
+    --
+    + CurrentEvidence()
+    + CurrentEvidence(evidences : Evidence...)
+    + CurrentEvidence(evidences : Set<Evidence>)
+    + hasEvidence(e : Evidence) : boolean
+    + getConfirmedEvidence() : Set<Evidence>
+  }
+
+  class EvidenceMatch {
+    - ghostName : String
+    - evidence  : Evidence
+    --
+    + EvidenceMatch()
+    + EvidenceMatch(ghostName : String, evidence : Evidence)
+    + getGhostName() : String
+    + setGhostName(ghostName : String)
+    + getEvidence()  : Evidence
+    + setEvidence(evidence : Evidence)
+  }
+
+  enum ProfileWeight {
+    LOW
+    MEDIUM
+    HIGH
+    DEFINITIVE
+  }
+
+  class Ghost <<Serializable>> {
+    - name      : String
+    - evidences : Set<Evidence>
+    - traits    : Set<String>
+    --
+    + Ghost()
+    + Ghost(name : String, evidences : Set<Evidence>, traits : Set<String>)
+    + getName()              : String
+    + hasTrait(t : String)   : boolean
+    + getEvidences()         : Set<Evidence>
+    + getTraits()            : Set<String>
+    + equals(o : Object)     : boolean
+    + hashCode()             : int
+    + toString()             : String
+  }
+
+  class GhostCandidate {
+    - ghostName     : String
+    - score         : int
+    - eliminated    : boolean
+    - isDefinitive  : boolean
+    - profileWeight : ProfileWeight
+    - appliedRules  : List<String>
+    --
+    + GhostCandidate(ghostName : String)
+    + hasRuleApplied(ruleName : String) : boolean
+    + applyRule(ruleName : String)
+    + addScore(points : int)
+    + eliminate()
+    + getGhostName()      : String
+    + getScore()          : int
+    + isEliminated()      : boolean
+    + isDefinitive()      : boolean
+    + setDefinitive(d : boolean)
+    + getProfileWeight()  : ProfileWeight
+    + setScore(score : int)
+    + getAppliedRules()   : List<String>
+  }
+
+  class GhostEliminated {
+    - ghostName : String
+    - reason    : String
+    --
+    + GhostEliminated()
+    + GhostEliminated(ghostName : String, reason : String)
+    + getGhostName() : String
+    + setGhostName(ghostName : String)
+    + getReason()    : String
+    + setReason(reason : String)
+  }
+
+  class ProfileMatch {
+    - ghostName : String
+    - ruleName  : String
+    - score     : int
+    --
+    + ProfileMatch(ghostName : String, ruleName : String)
+    + ProfileMatch(ghostName : String, ruleName : String, score : int)
+    + getGhostName() : String
+    + setGhostName(ghostName : String)
+    + getRuleName()  : String
+    + setRuleName(ruleName : String)
+    + getScore()     : int
+    + setScore(score : int)
+  }
+
+
+  class DerivedTrait {
+    - traitName : String
+    - source    : String
+    --
+    + DerivedTrait(traitName : String, source : String)
+    + getTraitName() : String
+    + getSource()    : String
+  }
+
+  class TraitMatch {
+    - ghostName : String
+    - traitName : String
+    --
+    + TraitMatch()
+    + TraitMatch(ghostName : String, traitName : String)
+    + getGhostName() : String
+    + setGhostName(ghostName : String)
+    + getTraitName() : String
+    + setTraitName(traitName : String)
+  }
+
+
+
+  class HuntObservation {
+    - freezingTemperatures                    : boolean
+    - ghostMovingFastInCold                   : boolean
+    - incenseUsed                             : boolean
+    - secondsUntilHuntAfterIncense            : Integer
+    - saltPlaced                              : boolean
+    - saltFootprintFound                      : boolean
+    - ghostPhotoTaken                         : boolean
+    - ghostDisappearedAfterPhoto              : boolean
+    - objectsThrownAtOnce                     : int
+    - parabolicMicrophoneUsed                 : boolean
+    - uniqueScreamHeard                       : boolean
+    - fuseBoxOn                               : boolean
+    - ghostAcceleratedWithFuseBox             : boolean
+    - huntStartedInDarkRoom                   : boolean
+    - highHuntSpeed                           : int
+    - multiplePlayersPresent                  : boolean
+    - activityDroppedWithPlayers              : boolean
+    - huntAtHighSanity                        : boolean
+    - secondsBetweenHunts                     : Integer
+    - doorSlammedAndLockedInRoom              : boolean
+    - activityIncreasedWithPlayers            : boolean
+    - huntTriggeredByVoice                    : boolean
+    - dotsVisibleOnCamera                     : boolean
+    - dotsVisibleToNakedEye                   : boolean
+    - footstepsVeryQuietDuringHunt            : boolean
+    - candlesExtinguishedBeforeHunt           : int
+    - huntStartedAfterCandleOut               : boolean
+    - simultaneousInteractionsInDifferentRooms : boolean
+    - activeElectronicsNearby                 : boolean
+    - ghostSpeedIncreasedNearElectronics      : boolean
+    - sixFingerHandprintFound                 : boolean
+    - behaviorChangedMidInvestigation         : boolean
+    - spiritBoxResponseReceived               : boolean
+    - playerSanityDroppedFastAfterResponse    : boolean
+    - ghostAlwaysKnewPlayerPosition           : boolean
+    - ghostSlowedDownNearPlayer               : boolean
+    - activityDeclinedOverTime                : boolean
+    - ghostSpeedDeclinedOverTime              : boolean
+    - ghostActivityLevel                      : String
+    - modelChangingDuringHunt                 : boolean
+    --
+    + HuntObservation()
+    .. getters / setters for all fields ..
+  }
+
+
+
+  abstract class GhostEvent <<Serializable>> {
+    - timestamp : long
+    --
+    + getTimestamp() : long
+  }
+
+  class CandleExtinguishedEvent {
+  }
+
+  class HuntStartedEvent {
+  }
+
+  class IncenseUsedEvent {
+  }
+
+  class BehaviorObservedEvent {
+    - behaviorType : String
+    --
+    + getBehaviorType() : String
+  }
+
+  GhostEvent <|-- CandleExtinguishedEvent
+  GhostEvent <|-- HuntStartedEvent
+  GhostEvent <|-- IncenseUsedEvent
+  GhostEvent <|-- BehaviorObservedEvent
+
+
+@enduml
