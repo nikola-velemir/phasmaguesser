@@ -1,0 +1,167 @@
+package com.ftn.sbnz.kjar.rules
+
+import com.ftn.sbnz.model.events.CandleExtinguishedEvent;
+import com.ftn.sbnz.model.events.HuntStartedEvent;
+import com.ftn.sbnz.model.events.IncenceUsedEvent;
+import com.ftn.sbnz.model.events.TraitObservedEvent;
+import com.ftn.sbnz.model.traits.DerivedTrait;
+import com.ftn.sbnz.model.ghosts.GhostEliminated;
+
+/*
+ * ═══════════════════════════════════════════════════════════════════
+ *  CEP RULES — Onryo & Mimic
+ *
+ *  REQUIRES: kmodule.xml ksession with eventProcessingMode="stream"
+ *
+ *  Pipeline hook:
+ *    These rules insert DerivedTrait facts, which are picked up by
+ *    "Score_Ghost_Traits_Dynamically" in scoring.drl, producing
+ *    TraitMatch facts that feed into Compute_Final_Score.
+ *
+ *  Ghost.traits values expected (must match your data loader):
+ *    Onryo  → "onryo_candle_hunt", "onryo_incense_hunt"
+ *    Mimic  → "mimic_behaviour_shift", "mimic_candle_hunt"
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+// ─── Drools CEP type declarations ───────────────────────────────────
+// These mirror the @Role/@Timestamp/@Expires Java annotations.
+// Declare here as well so the engine recognises the types in STREAM
+// mode even if annotations are picked up from the classpath.
+
+declare CandleExtinguishedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(3m)
+end
+
+declare HuntStartedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(3m)
+end
+
+declare IncenceUsedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(5m)
+end
+
+declare TraitObservedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(10m)
+end
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  ONRYO
+// ═══════════════════════════════════════════════════════════════════
+
+// ───────────────────────────────────────────────────────────────────
+// Rule O-1 : Three candles extinguished within 60 s → then a hunt
+//            starts within 30 s of the THIRD candle.
+//
+//  Phasmophobia mechanic: Onryo hunts on every 3rd candle kill.
+//  We require all four events so the pattern only fires when the
+//  full sequence (3 candles → hunt) is complete.
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Onryo_TripleCandle_Then_Hunt"
+    salience 30
+when
+    $c1 : CandleExtinguishedEvent()
+    $c2 : CandleExtinguishedEvent(
+              this != $c1,
+              this after[1ms, 60s] $c1
+          )
+    $c3 : CandleExtinguishedEvent(
+              this != $c1,
+              this != $c2,
+              this after[1ms, 60s] $c1
+          )
+    $h  : HuntStartedEvent(
+              this after[1ms, 30s] $c3
+          )
+    not DerivedTrait(traitName == "onryo_candle_hunt")
+then
+    insert(new DerivedTrait("onryo_candle_hunt", "CEP: 3 candles in 60s then hunt within 30s"));
+    System.out.println("[CEP - Onryo] Triple candle → hunt sequence detected. Derived: onryo_candle_hunt");
+end
+
+
+// ───────────────────────────────────────────────────────────────────
+// Rule O-2 : Incense used → ghost hunts within 5 minutes.
+//
+//  Phasmophobia mechanic: Using incense on an Onryo when no candle
+//  was recently available to extinguish provokes a hunt, because
+//  the incense blocks the Onryo's "candle safety valve".
+//  We measure the gap from incense use to the next hunt start.
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Onryo_Incense_Then_Hunt"
+    salience 30
+when
+    $i : IncenceUsedEvent()
+    $h : HuntStartedEvent(
+             this after[1ms, 5m] $i
+         )
+    not DerivedTrait(traitName == "onryo_incense_hunt")
+then
+    long gapSeconds = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait("onryo_incense_hunt",
+        "CEP: hunt started " + gapSeconds + "s after incense use"));
+    System.out.println("[CEP - Onryo] Incense used → hunt in " + gapSeconds + "s. Derived: onryo_incense_hunt");
+end
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  MIMIC
+// ═══════════════════════════════════════════════════════════════════
+
+// ───────────────────────────────────────────────────────────────────
+// Rule M-1 : Two DIFFERENT traits observed within a 3-minute window.
+//
+//  Phasmophobia mechanic: The Mimic copies a different ghost type
+//  periodically, so players will see behaviours that belong to
+//  different ghost species during the same investigation.
+//  Detecting that traitA ≠ traitB were both observed within 3
+//  minutes is the core Mimic tell.
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Mimic_Behaviour_Shift"
+    salience 30
+when
+    $t1 : TraitObservedEvent($trait1 : traitName)
+    $t2 : TraitObservedEvent(
+              this != $t1,
+              traitName != $trait1,
+              this after[1ms, 3m] $t1
+          )
+    not DerivedTrait(traitName == "mimic_behaviour_shift")
+then
+    insert(new DerivedTrait("mimic_behaviour_shift",
+        "CEP: trait '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 3 min"));
+    System.out.println("[CEP - Mimic] Behaviour shift: '" + $trait1
+        + "' → '" + $t2.getTraitName() + "'. Derived: mimic_behaviour_shift");
+end
+
+
+// ───────────────────────────────────────────────────────────────────
+// Rule M-2 : Mimic reproducing Onryo — candle extinguish → hunt,
+//            but a behaviour shift was ALSO already seen.
+//
+//  This disambiguates: if we have BOTH a candle→hunt sequence AND
+//  a trait switch, Mimic is far more likely than pure Onryo.
+//  Derives "mimic_candle_hunt" which scores Mimic specifically,
+//  while "onryo_candle_hunt" (from O-1) still scores Onryo.
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Mimic_Candle_Hunt_With_Shift"
+    salience 30
+when
+    DerivedTrait(traitName == "mimic_behaviour_shift")
+    $c : CandleExtinguishedEvent()
+    $h : HuntStartedEvent(this after[1ms, 60s] $c)
+    not DerivedTrait(traitName == "mimic_candle_hunt")
+then
+    insert(new DerivedTrait("mimic_candle_hunt",
+        "CEP: candle→hunt seen alongside behaviour shift"));
+    System.out.println("[CEP - Mimic] Candle→hunt + behaviour shift. Derived: mimic_candle_hunt");
+end
