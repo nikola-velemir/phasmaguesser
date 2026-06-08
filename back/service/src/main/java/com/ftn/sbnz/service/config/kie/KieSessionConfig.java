@@ -8,13 +8,14 @@ import org.kie.api.builder.KieBuilder;
 import org.kie.api.builder.KieFileSystem;
 import org.kie.api.builder.KieModule;
 import org.kie.api.runtime.KieSession;
+import org.kie.api.runtime.KieSessionConfiguration;
+import org.kie.api.runtime.conf.ClockTypeOption;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
 public class KieSessionConfig {
-
 
     @Bean(name = "templateGhostSession")
     @Scope("prototype")
@@ -25,6 +26,7 @@ public class KieSessionConfig {
             KieServices ks = KieServices.Factory.get();
             KieFileSystem kfs = ks.newKieFileSystem();
 
+            kfs.write(new ClassPathResource("rules/cep.drl"));
             String ghostTemplateDrl = extractGhostTemplate();
 
             kfs.write("src/main/resources/rules/ghosts_compiled.drl", ghostTemplateDrl);
@@ -49,7 +51,10 @@ public class KieSessionConfig {
             }
 
             KieModule kieModule = kieBuilder.getKieModule();
-            return ks.newKieContainer(kieModule.getReleaseId()).newKieSession();
+                        KieSessionConfiguration sessionConf = ks.newKieSessionConfiguration();
+            sessionConf.setOption(ClockTypeOption.get("realtime"));
+
+            return ks.newKieContainer(kieModule.getReleaseId()).newKieSession(sessionConf);
 
         } catch (Exception e) {
             throw new RuntimeException("Greška prilikom inicijalizacije Drools sesije: ", e);

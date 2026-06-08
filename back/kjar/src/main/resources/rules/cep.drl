@@ -5,40 +5,52 @@ import com.ftn.sbnz.model.events.HuntStartedEvent;
 import com.ftn.sbnz.model.events.IncenceUsedEvent;
 import com.ftn.sbnz.model.events.TraitObservedEvent;
 import com.ftn.sbnz.model.traits.DerivedTrait;
-import com.ftn.sbnz.model.ghosts.GhostEliminated;
 
 /*
  * ═══════════════════════════════════════════════════════════════════
- *  CEP RULES — Onryo & Mimic
+ *  CEP RULES — Onryo & The Mimic
+ *  Package: com.ftn.sbnz.kjar.rules  (same as scoring.drl / aggregation_rule.drl)
  *
- *  REQUIRES: kmodule.xml ksession with eventProcessingMode="stream"
+ *  REQUIRES: kmodule.xml  →  eventProcessingMode="stream"
  *
- *  Pipeline hook:
- *    These rules insert DerivedTrait facts, which are picked up by
- *    "Score_Ghost_Traits_Dynamically" in scoring.drl, producing
- *    TraitMatch facts that feed into Compute_Final_Score.
+ *  Pipeline integration
+ *  ────────────────────
+ *  Every rule inserts a DerivedTrait. That is picked up by
+ *  "Score_Ghost_Traits_Dynamically" (scoring.drl) → TraitMatch →
+ *  counted by "Compute_Final_Score" (aggregation_rule.drl).
+ *  Profile rows in profiles.drt then add bonus scores on top.
  *
- *  Ghost.traits values expected (must match your data loader):
- *    Onryo  → "onryo_candle_hunt", "onryo_incense_hunt"
- *    Mimic  → "mimic_behaviour_shift", "mimic_candle_hunt"
+ *  DerivedTrait names produced and their consumers
+ *  ────────────────────────────────────────────────
+ *  "Candle_Extinguish_Trigger"   → Onryo Ghost.traits   + Profile_Onryo_Candle_Trigger_DEFINITIVE     (+5)
+ *  "Onryo_Incense_Provokes_Hunt" → Onryo Ghost.traits*  + Profile_Onryo_Incense_Provokes_Hunt_DEFINITIVE (+5)
+ *  "Onryo_Incense_Normal_Delay"  → (penalty only, no Ghost.traits entry needed — no TraitMatch fires)
+ *  "Copy_Other_Ghosts"           → Mimic Ghost.traits   + Profile_Mimic_Copy_Behavior_HIGH            (+3)
+ *  "Model_Changing_During_Hunt"  → Mimic Ghost.traits   + Profile_Mimic_Model_Changing_HIGH           (+3)
+ *
+ *  * Add "Onryo_Incense_Provokes_Hunt" to Onryo's Ghost.traits in your
+ *    data loader. The profile row is in profiles_updated.xlsx.
+ *
+ *  NOTE on Long_Smudge_Timer (Spirit, traits.xls)
+ *  ───────────────────────────────────────────────
+ *  Spirit's trait fires when incense DELAYS the hunt >90 s.
+ *  Onryo is the opposite: incense PROVOKES a hunt in ≤15 s.
+ *  Spirit's rule stays in traits.drt (HuntObservation-based).
+ *  Onryo's version is here because it needs temporal CEP operators.
  * ═══════════════════════════════════════════════════════════════════
  */
 
-// ─── Drools CEP type declarations ───────────────────────────────────
-// These mirror the @Role/@Timestamp/@Expires Java annotations.
-// Declare here as well so the engine recognises the types in STREAM
-// mode even if annotations are picked up from the classpath.
-
+// ── CEP type declarations ────────────────────────────────────────────
 declare CandleExtinguishedEvent
     @role(event)
     @timestamp(timestamp)
-    @expires(3m)
+    @expires(2m)
 end
 
 declare HuntStartedEvent
     @role(event)
     @timestamp(timestamp)
-    @expires(3m)
+    @expires(5m)
 end
 
 declare IncenceUsedEvent
@@ -56,75 +68,147 @@ end
 
 // ═══════════════════════════════════════════════════════════════════
 //  ONRYO
+//
+//  Game mechanic:
+//    - Extinguishes candles instead of hunting normally.
+//    - Hunts after every 3rd candle extinguish (counter resets on hunt).
+//    - Incense resets the counter to 0 (protects players normally).
+//    - BUT: if incense is used at exactly the threshold moment (3rd
+//      candle just blown out), the Onryo hunts immediately instead
+//      of waiting — incense provokes rather than prevents.
 // ═══════════════════════════════════════════════════════════════════
 
 // ───────────────────────────────────────────────────────────────────
-// Rule O-1 : Three candles extinguished within 60 s → then a hunt
-//            starts within 30 s of the THIRD candle.
+// Rule O-1 : 3 candles extinguished within 30 s, then hunt within 30 s
+//            of the third candle.
 //
-//  Phasmophobia mechanic: Onryo hunts on every 3rd candle kill.
-//  We require all four events so the pattern only fires when the
-//  full sequence (3 candles → hunt) is complete.
+//  Derives "Candle_Extinguish_Trigger" — exact trait name in
+//  ghost-identities.xls (Onryo row) and profiles.xls
+//  (Profile_Onryo_Candle_Trigger_DEFINITIVE, +5).
 // ───────────────────────────────────────────────────────────────────
-rule "CEP_Onryo_TripleCandle_Then_Hunt"
+rule "CEP_Onryo_Triple_Candle_Then_Hunt"
     salience 30
 when
     $c1 : CandleExtinguishedEvent()
     $c2 : CandleExtinguishedEvent(
               this != $c1,
-              this after[1ms, 60s] $c1
+              this after[1ms, 30s] $c1
           )
     $c3 : CandleExtinguishedEvent(
               this != $c1,
               this != $c2,
-              this after[1ms, 60s] $c1
+              this after[1ms, 30s] $c1
           )
     $h  : HuntStartedEvent(
               this after[1ms, 30s] $c3
           )
-    not DerivedTrait(traitName == "onryo_candle_hunt")
+    not DerivedTrait(traitName == "Candle_Extinguish_Trigger")
 then
-    insert(new DerivedTrait("onryo_candle_hunt", "CEP: 3 candles in 60s then hunt within 30s"));
-    System.out.println("[CEP - Onryo] Triple candle → hunt sequence detected. Derived: onryo_candle_hunt");
+    long gap = ($h.getTimestamp() - $c3.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Candle_Extinguish_Trigger",
+        "CEP: 3 candles within 30s, hunt " + gap + "s after 3rd"
+    ));
+    System.out.println("[CEP - Onryo] Triple candle -> hunt (" + gap
+        + "s after 3rd). Derived: Candle_Extinguish_Trigger");
 end
 
 
 // ───────────────────────────────────────────────────────────────────
-// Rule O-2 : Incense used → ghost hunts within 5 minutes.
+// Rule O-2 : Incense used → hunt starts within 15 s.
 //
-//  Phasmophobia mechanic: Using incense on an Onryo when no candle
-//  was recently available to extinguish provokes a hunt, because
-//  the incense blocks the Onryo's "candle safety valve".
-//  We measure the gap from incense use to the next hunt start.
+//  The Onryo is the ONLY ghost where incense can cause a near-immediate
+//  hunt. All others gain ≥20 s immunity (Spirit gets >90 s).
+//  Threshold 15 s covers real game timing (typically 1–5 s) with
+//  comfortable headroom for input lag.
+//
+//  Derives "Onryo_Incense_Provokes_Hunt".
+//  Add this trait to Onryo in your data loader + profiles_updated.xlsx.
 // ───────────────────────────────────────────────────────────────────
-rule "CEP_Onryo_Incense_Then_Hunt"
+rule "CEP_Onryo_Incense_Provokes_Hunt"
     salience 30
 when
     $i : IncenceUsedEvent()
     $h : HuntStartedEvent(
-             this after[1ms, 5m] $i
+             this after[1ms, 15s] $i
          )
-    not DerivedTrait(traitName == "onryo_incense_hunt")
+    not DerivedTrait(traitName == "Onryo_Incense_Provokes_Hunt")
 then
-    long gapSeconds = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
-    insert(new DerivedTrait("onryo_incense_hunt",
-        "CEP: hunt started " + gapSeconds + "s after incense use"));
-    System.out.println("[CEP - Onryo] Incense used → hunt in " + gapSeconds + "s. Derived: onryo_incense_hunt");
+    long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Onryo_Incense_Provokes_Hunt",
+        "CEP: hunt in " + gap + "s after incense (<=15s = Onryo provocation)"
+    ));
+    System.out.println("[CEP - Onryo] Incense -> hunt in " + gap
+        + "s. Derived: Onryo_Incense_Provokes_Hunt");
+end
+
+
+// ───────────────────────────────────────────────────────────────────
+// Rule O-3 (PENALTY): Incense used → hunt comes 16–90 s later.
+//
+//  This is normal ghost smudge behaviour — incense delayed the hunt
+//  but not as long as Spirit (>90 s). NOT consistent with Onryo.
+//  We insert a "penalty" DerivedTrait with a name that has no entry
+//  in any Ghost.traits, so no TraitMatch fires — but a profile row
+//  can reference it directly via a condition in profiles.drt
+//  to subtract points from Onryo.
+//
+//  Add this profile row to profiles.drt data:
+//    ruleName:  Profile_Onryo_Normal_Smudge_Penalty
+//    condition: DerivedTrait(traitName == "Onryo_Incense_Normal_Delay")
+//    ghostName: Onryo
+//    score:     -3
+//    logMessage: Onryo -3 (incense delayed hunt normally, not provoked)
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Onryo_Incense_Normal_Delay_Penalty"
+    salience 30
+when
+    $i : IncenceUsedEvent()
+    $h : HuntStartedEvent(
+             this after[15s, 90s] $i
+         )
+    not DerivedTrait(traitName == "Onryo_Incense_Normal_Delay")
+then
+    long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Onryo_Incense_Normal_Delay",
+        "CEP: hunt " + gap + "s after incense — normal smudge, not Onryo"
+    ));
+    System.out.println("[CEP - Onryo penalty] Incense -> hunt in " + gap
+        + "s (normal delay). Derived: Onryo_Incense_Normal_Delay");
 end
 
 
 // ═══════════════════════════════════════════════════════════════════
-//  MIMIC
+//  THE MIMIC
+//
+//  Game mechanic:
+//    - Copies a random ghost type every 30–120 s.
+//    - Uses that ghost's speed, hunt behaviour, and special ability.
+//    - Does NOT copy that ghost's evidence set.
+//    - Always shows Ghost Orb as a fake 4th evidence
+//      (already scored: Profile_Mimic_Ghost_Orb_MEDIUM +2).
+//    - Model visually changes during hunts (Model_Changing_During_Hunt).
+//
+//  CEP signal: players observe traits belonging to two DIFFERENT ghost
+//  types in the same investigation window.
 // ═══════════════════════════════════════════════════════════════════
 
 // ───────────────────────────────────────────────────────────────────
-// Rule M-1 : Two DIFFERENT traits observed within a 3-minute window.
+// Rule M-1 : Two DIFFERENT trait names observed within 3 minutes.
 //
-//  Phasmophobia mechanic: The Mimic copies a different ghost type
-//  periodically, so players will see behaviours that belong to
-//  different ghost species during the same investigation.
-//  Detecting that traitA ≠ traitB were both observed within 3
-//  minutes is the core Mimic tell.
+//  TraitObservedEvent.traitName must be one of the Trait column values
+//  from ghost-identities.xls: "High_Hunt_Speed", "Voice_Sensitivity",
+//  "Candle_Extinguish_Trigger", "Attack_In_Darkness", etc.
+//  Fire this event from your backend when players confirm a behaviour.
+//
+//  Window: 3 min. The Mimic switches every 30–120 s, so two different
+//  traits are nearly guaranteed within 3 min for a real Mimic.
+//  No normal ghost ever produces two different trait types.
+//
+//  Derives "Copy_Other_Ghosts" — exact trait name for The Mimic in
+//  ghost-identities.xls. Profile_Mimic_Copy_Behavior_HIGH scores +3.
 // ───────────────────────────────────────────────────────────────────
 rule "CEP_Mimic_Behaviour_Shift"
     salience 30
@@ -135,33 +219,46 @@ when
               traitName != $trait1,
               this after[1ms, 3m] $t1
           )
-    not DerivedTrait(traitName == "mimic_behaviour_shift")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
 then
-    insert(new DerivedTrait("mimic_behaviour_shift",
-        "CEP: trait '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 3 min"));
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 3 min"
+    ));
     System.out.println("[CEP - Mimic] Behaviour shift: '" + $trait1
-        + "' → '" + $t2.getTraitName() + "'. Derived: mimic_behaviour_shift");
+        + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
 end
 
 
 // ───────────────────────────────────────────────────────────────────
-// Rule M-2 : Mimic reproducing Onryo — candle extinguish → hunt,
-//            but a behaviour shift was ALSO already seen.
+// Rule M-2 : Model visibly changed during a hunt (within 120 s).
 //
-//  This disambiguates: if we have BOTH a candle→hunt sequence AND
-//  a trait switch, Mimic is far more likely than pure Onryo.
-//  Derives "mimic_candle_hunt" which scores Mimic specifically,
-//  while "onryo_candle_hunt" (from O-1) still scores Onryo.
+//  Players fire TraitObservedEvent(traitName="Model_Changing_During_Hunt")
+//  when they see the ghost's appearance change mid-hunt.
+//
+//  "Model_Changing_During_Hunt" is already in traits.xls with a
+//  HuntObservation-based condition (modelChangingDuringHunt == true).
+//  This CEP rule catches the same trait from the event stream instead,
+//  useful when HuntObservation is not populated but the event is fired.
+//
+//  The `not DerivedTrait` guard prevents double-insertion if the
+//  traits.drt rule already derived it from HuntObservation.
 // ───────────────────────────────────────────────────────────────────
-rule "CEP_Mimic_Candle_Hunt_With_Shift"
+rule "CEP_Mimic_Model_Changing_During_Hunt"
     salience 30
 when
-    DerivedTrait(traitName == "mimic_behaviour_shift")
-    $c : CandleExtinguishedEvent()
-    $h : HuntStartedEvent(this after[1ms, 60s] $c)
-    not DerivedTrait(traitName == "mimic_candle_hunt")
+    $h : HuntStartedEvent()
+    $t : TraitObservedEvent(
+             traitName == "Model_Changing_During_Hunt",
+             this after[1ms, 120s] $h
+         )
+    not DerivedTrait(traitName == "Model_Changing_During_Hunt")
 then
-    insert(new DerivedTrait("mimic_candle_hunt",
-        "CEP: candle→hunt seen alongside behaviour shift"));
-    System.out.println("[CEP - Mimic] Candle→hunt + behaviour shift. Derived: mimic_candle_hunt");
+    long gap = ($t.getTimestamp() - $h.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Model_Changing_During_Hunt",
+        "CEP: model change observed " + gap + "s into hunt"
+    ));
+    System.out.println("[CEP - Mimic] Model change " + gap
+        + "s after hunt start. Derived: Model_Changing_During_Hunt");
 end
