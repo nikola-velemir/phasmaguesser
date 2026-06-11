@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class IndentificatorService {
 
+    private final EventService eventService;
     private final ApplicationContext context;
 
     public List<GhostCandidate> indifyGhost(CurrentEvidence currentEvidence, HuntObservation huntObservation) {
@@ -39,6 +40,9 @@ public class IndentificatorService {
                 System.out.println("SYS: Inserting HuntObservation...");
                 ksession.insert(huntObservation);
             }
+            
+            System.out.println("Inserting events...");
+            eventService.getDerivedTraits().forEach(ksession::insert);
 
             System.out.println("Beggining reasoning...");
             int firedRules = ksession.fireAllRules();
