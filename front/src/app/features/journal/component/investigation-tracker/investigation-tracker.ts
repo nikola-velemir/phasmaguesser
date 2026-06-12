@@ -1,132 +1,94 @@
-import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
-import { EventApiService } from '../../../../service/events/event-api-service';
-import { ClockService } from '../../../../service/clock/clock-service';
-
-// ── Domain types ─────────────────────────────────────────────────────────────
-
-export interface ActiveEffect {
-  id: number;
-  key: 'hunt' | 'incense' | 'candle';
-}
-
-export interface LogEntry {
-  timestamp: string;
-  message: string;
-  colorClass: string;
-}
-
-// ── Component ─────────────────────────────────────────────────────────────────
+import { CommonModule } from "@angular/common";
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
+import { Subscription } from "rxjs";
+import { EventApiService } from "../../../../service/events/event-api-service";
+import { ClockService } from "../../../../service/clock/clock-service";
+import { ActiveEffect, EventService, LogEntry } from "../../../../service/events/event-service";
 
 @Component({
-  selector: 'app-investigation-tracker',
+  selector: "app-investigation-tracker",
   imports: [CommonModule],
-  templateUrl: './investigation-tracker.html',
-  styleUrl: './investigation-tracker.css',
+  templateUrl: "./investigation-tracker.html",
+  styleUrl: "./investigation-tracker.css",
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class InvestigationTracker implements OnDestroy {
+export class InvestigationTracker implements OnInit, OnDestroy {
 
   // ── Clock ──────────────────────────────────────────────────────────────────
 
-  elapsed = 0;
   running = false;
   private ticker: ReturnType<typeof setInterval> | null = null;
-  private nextEffectId = 0;
-  private expiryTimers: ReturnType<typeof setTimeout>[] = [];
+
+  get elapsed(): number {
+    return this.eventService.elapsed;
+  }
 
   get clockDisplay(): string {
     return this.formatTime(this.elapsed);
   }
 
   get clockHunting(): boolean {
-    return this.running && this.effects.some(e => e.key === 'hunt');
+    return this.running && this.effects.some((e) => e.key === "hunt");
   }
 
-  // ── Active CEP windows ────────────────────────────────────────────────────
+  // ── Projected state from EventService ─────────────────────────────────────
 
   effects: ActiveEffect[] = [];
-
-  private readonly effectDurations: Record<'hunt' | 'incense' | 'candle', number> = {
-    hunt: 120,
-    incense: 180,
-    candle: 300,
-  };
-
-  // ── CEP event triggers ────────────────────────────────────────────────────
-
+  logs: LogEntry[] = [];
   flashingKeys: Record<string, boolean> = {};
 
-  private readonly eventLogColors: Record<'hunt' | 'incense' | 'candle', string> = {
-    hunt: 'text-red-400',
-    incense: 'text-blue-400',
-    candle: 'text-yellow-300',
-  };
+  private subs = new Subscription();
 
-  private readonly eventLogLabels: Record<'hunt' | 'incense' | 'candle', string> = {
-    hunt: 'HuntStartedEvent',
-    incense: 'IncenceUsedEvent',
-    candle: 'CandleExtinguishedEvent',
-  };
+  constructor(
+    private readonly eventService: EventService,
+    private readonly eventApiService: EventApiService,
+    private readonly clockService: ClockService,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
 
-  private readonly eventWindows: Record<'hunt' | 'incense' | 'candle', string> = {
-    hunt: '120s', incense: '3m', candle: '5m',
-  };
+  ngOnInit(): void {
+    this.subs.add(this.eventService.effects$.subscribe((effects) => {
+      this.effects = effects;
+      this.cdr.markForCheck();
+    }));
+    this.subs.add(this.eventService.logs$.subscribe((logs) => {
+      this.logs = logs;
+      this.cdr.markForCheck();
+    }));
+    this.subs.add(this.eventService.flashingKeys$.subscribe((keys) => {
+      this.flashingKeys = keys;
+      this.cdr.markForCheck();
+    }));
+  }
 
-  fireCepEvent(key: 'hunt' | 'incense' | 'candle'): void {
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+    if (this.ticker) clearInterval(this.ticker);
+  }
+
+  // ── CEP event triggers ─────────────────────────────────────────────────────
+
+  fireCepEvent(key: "hunt" | "incense" | "candle"): void {
     if (!this.running) return;
 
-    const id = this.nextEffectId++;
-    this.effects = [...this.effects, { id, key }];
+    this.eventService.addEffect(key);
 
-    const expiryTimer = setTimeout(() => {
-      this.effects = this.effects.filter(e => e.id !== id);
-      this.cdr.markForCheck();
-    }, this.effectDurations[key] * 1000);
-    this.expiryTimers.push(expiryTimer);
-
-    this.flashingKeys = { ...this.flashingKeys, [key]: true };
-    setTimeout(() => {
-      this.flashingKeys = { ...this.flashingKeys, [key]: false };
-      this.cdr.markForCheck();
-    }, 400);
-
-    this.addLog(
-      `${this.eventLogLabels[key]} fired — window: ${this.eventWindows[key]}`,
-      this.eventLogColors[key],
-    );
-    this.cdr.markForCheck();
+    const timestamp = Date.now();
     switch (key) {
-      case 'hunt': {
-        this.insertHuntStarted()
-        break;
-      } case 'incense': {
-        this.insertIncenseUsed()
-        break;
-      } case 'candle': {
-        this.insertCandleExtinguished()
-        break;
-      }
+      case "hunt":   this.eventApiService.insertHuntStarted({ timestamp }).subscribe(); break;
+      case "incense": this.eventApiService.insertIncenseUsed({ timestamp }).subscribe(); break;
+      case "candle":  this.eventApiService.insertCandleExtinguished({ timestamp }).subscribe(); break;
     }
   }
 
   advanceTime(seconds: 5 | 10 | 30): void {
     if (!this.running) return;
 
-    // advance frontend display clock
-    this.elapsed += seconds;
-
-    // flash the button
-    const flashKey = `advance${seconds}`;
-    this.flashingKeys = { ...this.flashingKeys, [flashKey]: true };
-    setTimeout(() => {
-      this.flashingKeys = { ...this.flashingKeys, [flashKey]: false };
-      this.cdr.markForCheck();
-    }, 400);
-
-    this.addLog(`Time advanced by ${seconds}s`, 'text-violet-400');
+    this.eventService.setElapsed(this.elapsed + seconds);
+    this.eventService.flash(`advance${seconds}`);
+    this.eventService.addLog(`Time advanced by ${seconds}s`, "text-violet-400");
     this.cdr.markForCheck();
 
-    // tell backend to advance pseudo clock
     this.clockService.advanceTime(seconds).subscribe(() =>
       console.log(`Advanced pseudo clock by ${seconds}s`)
     );
@@ -140,22 +102,14 @@ export class InvestigationTracker implements OnDestroy {
     return effect.id;
   }
 
-  // ── Log ───────────────────────────────────────────────────────────────────
-
-  logs: LogEntry[] = [];
-
-  private addLog(message: string, colorClass: string): void {
-    this.logs = [{ timestamp: this.formatTime(this.elapsed), message, colorClass }, ...this.logs];
-  }
-
-  // ── Begin / Stop / Reset ──────────────────────────────────────────────────
+  // ── Begin / Stop / Reset ───────────────────────────────────────────────────
 
   begin(): void {
     if (this.running) return;
     this.running = true;
-    this.addLog('Investigation begun', 'text-zinc-400');
+    this.eventService.addLog("Investigation begun", "text-zinc-400");
     this.ticker = setInterval(() => {
-      this.elapsed++;
+      this.eventService.tick();
       this.cdr.markForCheck();
     }, 1000);
   }
@@ -164,49 +118,24 @@ export class InvestigationTracker implements OnDestroy {
     if (!this.running) return;
     this.running = false;
     if (this.ticker) { clearInterval(this.ticker); this.ticker = null; }
-    this.addLog(`Investigation stopped at ${this.formatTime(this.elapsed)}`, 'text-red-400');
-    this.reset()
+    this.eventService.addLog(
+      `Investigation stopped at ${this.formatTime(this.elapsed)}`,
+      "text-red-400",
+    );
+    this.reset();
   }
 
   reset(): void {
     this.stop();
-    this.expiryTimers.forEach(t => clearTimeout(t));
-    this.expiryTimers = [];
-    this.elapsed = 0;
-    this.effects = [];
-    this.logs = [];
-    this.flashingKeys = {};
-    this.nextEffectId = 0;
-
-    this.eventService.clearEvents().subscribe(()=>console.log("Cleared all events!"))
-
+    this.eventService.clear();
+    this.eventApiService.clearEvents().subscribe(() => console.log("Cleared all events!"));
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   private formatTime(seconds: number): string {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
-  }
-
-  constructor(private cdr: ChangeDetectorRef, private readonly eventService: EventApiService, private readonly clockService : ClockService) { }
-
-  ngOnDestroy(): void {
-    if (this.ticker) clearInterval(this.ticker);
-    this.expiryTimers.forEach(t => clearTimeout(t));
-  }
-
-  insertCandleExtinguished() {
-    const timestamp = Date.now()
-    this.eventService.insertCandleExtinguished({ timestamp }).subscribe((res) => console.log(res))
-  }
-  insertHuntStarted() {
-    const timestamp = Date.now()
-    this.eventService.insertHuntStarted({ timestamp }).subscribe((res) => console.log(res))
-  }
-  insertIncenseUsed() {
-    const timestamp = Date.now()
-    this.eventService.insertIncenseUsed({ timestamp }).subscribe((res) => console.log(res))
   }
 }

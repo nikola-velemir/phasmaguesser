@@ -10,4 +10,10 @@ export class ClockService {
   advanceTime(seconds: number) {
     return this.http.post(`${this.BASE_URL}/advance`, { seconds })
   }
+  private _elapsed = 0;
+
+  get elapsed(): number {
+    return this._elapsed;
+  }
+
 }

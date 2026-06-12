@@ -1,25 +1,29 @@
-import { CommonModule, AsyncPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { BehaviorSubject, map, Subscription } from 'rxjs';
 import { Observation } from './observation';
 import { GhostService } from '../../../../service/ghost-service';
+import { EventService } from '../../../../service/events/event-service';
+import { EventApiService } from '../../../../service/events/event-api-service';
+
 
 export interface ToggleField {
   field: keyof Observation;
   label: string;
+  value?: string;
   hint?: string;
   revealsSectionId?: string;
 }
 
 export interface NumberField {
   field: keyof Observation;
-  label: string;
+  label: string; value?: string;
   hint?: string;
   placeholder: string;
 }
 
 export interface SelectField {
-  field: keyof Observation;
+  field: keyof Observation; value?: string;
   label: string;
   options: { value: string; label: string }[];
 }
@@ -47,12 +51,12 @@ export interface Section {
 })
 export class ObservationBar implements OnInit, OnDestroy {
 
+  constructor(
+    private ghostService: GhostService,
+    private eventService: EventService,
+    private eventApiService: EventApiService,
+  ) { }
 
-  /**
-   *
-   */
-  constructor(private ghostService: GhostService) {
-  }
   // ── Core reactive state ──────────────────────────────────────────
   readonly state$ = new BehaviorSubject<Partial<Observation>>({});
 
@@ -60,9 +64,10 @@ export class ObservationBar implements OnInit, OnDestroy {
   visibleSubRows = new Set<string>();
   expanded = true;
 
+  /** Whether the record button flash overlay is active */
+  recordFlashing = false;
+
   // ── Derived streams ──────────────────────────────────────────────
-
-
 
   readonly filledFields$ = this.state$.pipe(
     map(state => this.sections.reduce(
@@ -88,6 +93,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle',
           config: {
+            value: 'Temperature_Based_Speed',
             field: 'ghostMovingFastInCold',
             label: 'Ghost moving fast in cold',
             hint: 'Notably accelerated in freezing areas',
@@ -105,6 +111,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle',
           config: {
+            value: '',
             field: 'incenseUsed',
             label: 'Incense used before hunt',
             revealsSectionId: 'incense-time',
@@ -122,6 +129,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle',
           config: {
+            value: 'Voice_Sensitivity',
             field: 'huntTriggeredByVoice',
             label: 'Hunt triggered by voice',
             hint: 'Ghost reacted to players speaking',
@@ -129,11 +137,12 @@ export class ObservationBar implements OnInit, OnDestroy {
         },
         {
           kind: 'toggle',
-          config: { field: 'huntStartedInDarkRoom', label: 'Hunt started in dark room' },
+          config: { field: 'huntStartedInDarkRoom', label: 'Hunt started in dark room', value: 'Attack_In_Darkness' },
         },
         {
           kind: 'toggle',
           config: {
+            value: 'Early_Hunt_Low_Cooldown',
             field: 'huntAtHighSanity',
             label: 'Hunt at high sanity',
             hint: 'Team sanity was high when hunt started',
@@ -150,11 +159,16 @@ export class ObservationBar implements OnInit, OnDestroy {
       items: [
         {
           kind: 'number',
-          config: { field: 'highHuntSpeed', label: 'Approximate high hunt speed', placeholder: 'val' },
+          config: {
+            value: 'High_Hunt_Speed',
+            field: 'highHuntSpeed',
+            label: 'Approximate high hunt speed', placeholder: 'val'
+          },
         },
         {
           kind: 'toggle',
           config: {
+            value: '',
             field: 'fuseBoxOn',
             label: 'Fuse box on during hunt',
             revealsSectionId: 'fusebox-accel',
@@ -164,6 +178,7 @@ export class ObservationBar implements OnInit, OnDestroy {
           kind: 'toggle-child',
           parentSectionId: 'fusebox-accel',
           config: {
+            value: 'Speed_Increase_With_Fuse_Box',
             field: 'ghostAcceleratedWithFuseBox',
             label: 'Ghost accelerated with fuse box on',
           },
@@ -171,6 +186,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle',
           config: {
+            value: 'Close_Slowdown',
             field: 'ghostSlowedDownNearPlayer',
             label: 'Ghost slowed near player',
             hint: 'Noticeable deceleration when approaching',
@@ -178,11 +194,14 @@ export class ObservationBar implements OnInit, OnDestroy {
         },
         {
           kind: 'toggle',
-          config: { field: 'ghostSpeedDeclinedOverTime', label: 'Speed declined over time' },
+          config: {
+            value: 'Aging_Mechanic',
+            field: 'ghostSpeedDeclinedOverTime', label: 'Speed declined over time'
+          },
         },
         {
           kind: 'toggle',
-          config: { field: 'footstepsVeryQuietDuringHunt', label: 'Footsteps very quiet during hunt' },
+          config: { value: 'Quiet_Footsteps_During_Hunt', field: 'footstepsVeryQuietDuringHunt', label: 'Footsteps very quiet during hunt' },
         },
       ],
     },
@@ -199,15 +218,16 @@ export class ObservationBar implements OnInit, OnDestroy {
         },
         {
           kind: 'toggle',
-          config: { field: 'activityDroppedWithPlayers', label: 'Activity dropped with more players' },
+          config: { value: 'High_Activity_Near_Player', field: 'activityDroppedWithPlayers', label: 'Activity dropped with more players' },
         },
         {
           kind: 'toggle',
-          config: { field: 'activityIncreasedWithPlayers', label: 'Activity increased with more players' },
+          config: { value: 'Shy_In_Presence', field: 'activityIncreasedWithPlayers', label: 'Activity increased with more players' },
         },
         {
           kind: 'toggle',
           config: {
+            value: 'Player_Tracking',
             field: 'ghostAlwaysKnewPlayerPosition',
             label: 'Ghost always knew player position',
             hint: 'Hiding never worked',
@@ -215,7 +235,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         },
         {
           kind: 'toggle',
-          config: { field: 'activityDeclinedOverTime', label: 'Activity declined over time' },
+          config: { value: 'Aging_Mechanic', field: 'activityDeclinedOverTime', label: 'Activity declined over time' },
         },
         {
           kind: 'select',
@@ -241,7 +261,8 @@ export class ObservationBar implements OnInit, OnDestroy {
       items: [
         {
           kind: 'toggle',
-          config: { field: 'saltPlaced', label: 'Salt placed in ghost area', revealsSectionId: 'salt-fp' },
+
+          config: { value: 'No_Salt_Footprints', field: 'saltPlaced', label: 'Salt placed in ghost area', revealsSectionId: 'salt-fp' },
         },
         {
           kind: 'toggle-child',
@@ -255,7 +276,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle-child',
           parentSectionId: 'photo-vanish',
-          config: { field: 'ghostDisappearedAfterPhoto', label: 'Ghost disappeared after photo' },
+          config: { value: 'Photo_Disappearance', field: 'ghostDisappearedAfterPhoto', label: 'Ghost disappeared after photo' },
         },
         {
           kind: 'number',
@@ -272,7 +293,7 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle-child',
           parentSectionId: 'scream-row',
-          config: { field: 'uniqueScreamHeard', label: 'Unique scream heard via mic' },
+          config: { value: 'Parabolic_Scream', field: 'uniqueScreamHeard', label: 'Unique scream heard via mic' },
         },
         {
           kind: 'toggle',
@@ -280,11 +301,11 @@ export class ObservationBar implements OnInit, OnDestroy {
         },
         {
           kind: 'toggle',
-          config: { field: 'dotsVisibleToNakedEye', label: 'DOTS visible to naked eye' },
+          config: { value: 'Camera_Only_DOTS', field: 'dotsVisibleToNakedEye', label: 'DOTS visible to naked eye' },
         },
         {
           kind: 'toggle',
-          config: { field: 'sixFingerHandprintFound', label: 'Six-finger handprint found' },
+          config: { value: 'Six_Finger_Handprint', field: 'sixFingerHandprintFound', label: 'Six-finger handprint found' },
         },
       ],
     },
@@ -306,20 +327,20 @@ export class ObservationBar implements OnInit, OnDestroy {
         {
           kind: 'toggle-child',
           parentSectionId: 'elec-speed',
-          config: { field: 'ghostSpeedIncreasedNearElectronics', label: 'Ghost speed increased near electronics' },
+          config: { value: 'Electronics_Speed_Boost', field: 'ghostSpeedIncreasedNearElectronics', label: 'Ghost speed increased near electronics' },
         },
-        {
-          kind: 'number',
-          config: {
-            field: 'candlesExtinguishedBeforeHunt',
-            label: 'Candles extinguished before hunt',
-            placeholder: '0',
-          },
-        },
-        {
-          kind: 'toggle',
-          config: { field: 'huntStartedAfterCandleOut', label: 'Hunt started right after candle went out' },
-        },
+        // {
+        //   kind: 'number',
+        //   config: {
+        //     field: 'candlesExtinguishedBeforeHunt',
+        //     label: 'Candles extinguished before hunt',
+        //     placeholder: '0',
+        //   },
+        // },
+        // {
+        //   kind: 'toggle',
+        //   config: { field: 'huntStartedAfterCandleOut', label: 'Hunt started right after candle went out' },
+        // },
       ],
     },
     {
@@ -340,20 +361,21 @@ export class ObservationBar implements OnInit, OnDestroy {
         },
         {
           kind: 'toggle',
-          config: { field: 'doorSlammedAndLockedInRoom', label: 'Door slammed and locked players in room' },
+          config: {value: 'Door_Manipulation', field: 'doorSlammedAndLockedInRoom', label: 'Door slammed and locked players in room' },
         },
         {
           kind: 'toggle',
           config: {
+            value: 'Dual_Interactions',
             field: 'simultaneousInteractionsInDifferentRooms',
             label: 'Simultaneous interactions in different rooms',
             hint: 'Ghost seemed to act in multiple places',
           },
         },
-        {
-          kind: 'toggle',
-          config: { field: 'behaviorChangedMidInvestigation', label: 'Behavior changed mid-investigation' },
-        },
+        // {
+        //   kind: 'toggle',
+        //   config: { field: 'behaviorChangedMidInvestigation', label: 'Behavior changed mid-investigation' },
+        // },
         {
           kind: 'toggle',
           config: {
@@ -366,6 +388,7 @@ export class ObservationBar implements OnInit, OnDestroy {
           kind: 'toggle-child',
           parentSectionId: 'sanity-drop',
           config: {
+            value:'Curse_And_Speed_Sanity',
             field: 'playerSanityDroppedFastAfterResponse',
             label: 'Sanity dropped fast after spirit box response',
           },
@@ -373,10 +396,13 @@ export class ObservationBar implements OnInit, OnDestroy {
       ],
     },
   ];
-  /** Total number of schema fields across all sections */
-  private readonly totalFields = this.sections
-    ? 0  // initialised below after sections is defined
-    : 0;
+
+  ngOnInit(): void {
+    this.sub.add(
+      this.state$.subscribe(o => this.ghostService.setObservation(o))
+    );
+  }
+
   ngOnDestroy(): void {
     this.sub.unsubscribe();
   }
@@ -386,7 +412,7 @@ export class ObservationBar implements OnInit, OnDestroy {
     section.expanded = !section.expanded;
   }
 
-  // ── Field reads (from current snapshot for template bindings) ─────
+  // ── Field reads ───────────────────────────────────────────────────
   isChecked(field: keyof Observation): boolean {
     return !!this.state$.value[field];
   }
@@ -404,13 +430,12 @@ export class ObservationBar implements OnInit, OnDestroy {
     return this.visibleSubRows.has(sectionId);
   }
 
-  // ── Field writes (patch BehaviorSubject) ──────────────────────────
+  // ── Field writes ──────────────────────────────────────────────────
   onToggleChange<K extends keyof Observation>(
     field: K,
     checked: boolean,
     revealsSectionId?: string
   ): void {
-    // Build the patch, starting with the toggled field
     const patch: Partial<Observation> = { [field]: checked as Observation[K] };
 
     if (revealsSectionId) {
@@ -418,7 +443,6 @@ export class ObservationBar implements OnInit, OnDestroy {
         this.visibleSubRows.add(revealsSectionId);
       } else {
         this.visibleSubRows.delete(revealsSectionId);
-        // Null-out children so they don't linger in state
         this.collectChildFields(revealsSectionId).forEach(f => {
           (patch as any)[f] = null;
         });
@@ -438,9 +462,43 @@ export class ObservationBar implements OnInit, OnDestroy {
     this.patch({ [field]: (value || null) as Observation[K] });
   }
 
-  // ── Badge helpers (use snapshot — called from template, no async needed) ──
+  // ── Badge helpers ─────────────────────────────────────────────────
   filledCountForSection(section: Section): number {
     return this.filledCountForSectionState(section, this.state$.value);
+  }
+
+  // ── Record observations ───────────────────────────────────────────
+
+  /**
+   * Explicitly push all currently-filled observations as a batch of
+   * TraitObservedEvents into EventService, where they surface in the
+   * investigation-tracker log.
+   */
+  recordObservations(): void {
+    const state = this.state$.value;
+    let count = 0;
+
+    for (const section of this.sections) {
+      for (const item of section.items) {
+        const field = item.config.field;
+        const value = state[field];
+        if (this.isFilled(value)) {
+          const coerced = value as boolean | number | string | null;
+          this.eventService.recordTraitObserved(field, item.config.label, coerced);
+          this.eventApiService.recordTraitObserved({
+            traitName: item.config.label,
+            timestamp: Date.now(),
+          }).subscribe();
+          count++;
+        }
+      }
+    }
+
+    if (count === 0) return;
+
+    // Flash the button as confirmation
+    this.recordFlashing = true;
+    setTimeout(() => { this.recordFlashing = false; }, 400);
   }
 
   // ── Reset ─────────────────────────────────────────────────────────
@@ -449,52 +507,7 @@ export class ObservationBar implements OnInit, OnDestroy {
     this.state$.next({});
   }
 
-  // ── Analyse ───────────────────────────────────────────────────────
-  analyzeObservation(): void {
-    const s = this.state$.value;
-    const lines: string[] = [];
-
-    if (s.freezingTemperatures) lines.push('- Freezing temperatures observed');
-    if (s.ghostMovingFastInCold) lines.push('- Ghost moved fast in cold');
-    if (s.incenseUsed)
-      lines.push(`- Incense used${s.secondsUntilHuntAfterIncense != null ? ` (hunt after ${s.secondsUntilHuntAfterIncense}s)` : ''}`);
-    if (s.huntTriggeredByVoice) lines.push('- Hunt triggered by voice');
-    if (s.huntStartedInDarkRoom) lines.push('- Hunt started in dark room');
-    if (s.huntAtHighSanity) lines.push('- Hunt at high sanity');
-    if (s.fuseBoxOn) lines.push(`- Fuse box was on${s.ghostAcceleratedWithFuseBox ? ' (ghost accelerated)' : ''}`);
-    if (s.ghostSlowedDownNearPlayer) lines.push('- Ghost slowed near player');
-    if (s.ghostSpeedDeclinedOverTime) lines.push('- Speed declined over time');
-    if (s.footstepsVeryQuietDuringHunt) lines.push('- Footsteps very quiet during hunt');
-    if (s.highHuntSpeed) lines.push(`- High hunt speed: ${s.highHuntSpeed}`);
-    if (s.saltPlaced) lines.push(`- Salt placed${s.saltFootprintFound ? ' (footprint found)' : ' (no footprint)'}`);
-    if (s.ghostPhotoTaken) lines.push(`- Ghost photo taken${s.ghostDisappearedAfterPhoto ? ' (disappeared after)' : ''}`);
-    if ((s.objectsThrownAtOnce as number) > 0) lines.push(`- ${s.objectsThrownAtOnce} objects thrown at once`);
-    if (s.parabolicMicrophoneUsed) lines.push(`- Parabolic mic used${s.uniqueScreamHeard ? ' (unique scream heard)' : ''}`);
-    if (s.dotsVisibleOnCamera) lines.push('- DOTS on camera');
-    if (s.dotsVisibleToNakedEye) lines.push('- DOTS visible to naked eye');
-    if (s.sixFingerHandprintFound) lines.push('- Six-finger handprint found');
-    if (s.multiplePlayersPresent) lines.push('- Multiple players present');
-    if (s.activityDroppedWithPlayers) lines.push('- Activity dropped with more players');
-    if (s.activityIncreasedWithPlayers) lines.push('- Activity increased with more players');
-    if (s.ghostAlwaysKnewPlayerPosition) lines.push('- Ghost always knew player position');
-    if (s.activityDeclinedOverTime) lines.push('- Activity declined over time');
-    if (s.ghostActivityLevel) lines.push(`- Activity level: ${s.ghostActivityLevel}`);
-    if (s.activeElectronicsNearby) lines.push(`- Active electronics nearby${s.ghostSpeedIncreasedNearElectronics ? ' (ghost sped up)' : ''}`);
-    if ((s.candlesExtinguishedBeforeHunt as number) > 0) lines.push(`- ${s.candlesExtinguishedBeforeHunt} candle(s) extinguished before hunt`);
-    if (s.huntStartedAfterCandleOut) lines.push('- Hunt started after candle went out');
-    if (s.secondsBetweenHunts != null) lines.push(`- ${s.secondsBetweenHunts}s between hunts`);
-    if (s.doorSlammedAndLockedInRoom) lines.push('- Door slammed and locked players in room');
-    if (s.simultaneousInteractionsInDifferentRooms) lines.push('- Simultaneous interactions in different rooms');
-    if (s.behaviorChangedMidInvestigation) lines.push('- Behavior changed mid-investigation');
-    if (s.spiritBoxResponseReceived)
-      lines.push(`- Spirit box response received${s.playerSanityDroppedFastAfterResponse ? ' (sanity dropped fast after)' : ''}`);
-
-    // Emit or route as needed in the real app
-  }
-
   // ── Private helpers ───────────────────────────────────────────────
-
-  /** Emit a shallow-merged patch into the BehaviorSubject */
   private patch(partial: Partial<Observation>): void {
     this.state$.next({ ...this.state$.value, ...partial });
   }
@@ -514,7 +527,6 @@ export class ObservationBar implements OnInit, OnDestroy {
     return this.sections.reduce((acc, s) => acc + s.items.length, 0);
   }
 
-  /** Collect all child fields that belong to a conditional sub-row */
   private collectChildFields(sectionId: string): Array<keyof Observation> {
     const fields: Array<keyof Observation> = [];
     for (const section of this.sections) {
@@ -525,9 +537,5 @@ export class ObservationBar implements OnInit, OnDestroy {
       }
     }
     return fields;
-  }
-
-  ngOnInit(): void {
-    this.state$.subscribe(o => this.ghostService.setObservation(o))
   }
 }

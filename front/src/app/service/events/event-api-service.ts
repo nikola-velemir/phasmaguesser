@@ -2,31 +2,37 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { TimestampPayload } from "../../model/timestamp-payload";
 
+export interface TraitObservedPayload {
+  traitName: string;
+  timestamp: number; // Unix ms
+}
+
 @Injectable({
   providedIn: "root",
 })
 export class EventApiService {
-  private readonly BASE_URL = "http://localhost:8080/api/events"
-  /**
-   *
-   */
-  constructor(private readonly http: HttpClient) {
+  private readonly BASE_URL = "http://localhost:8080/api/events";
 
-  }
+  constructor(private readonly http: HttpClient) {}
+
   insertCandleExtinguished(request: TimestampPayload) {
-    return this.http.post(`${this.BASE_URL}/candle-extinguished`, request)
+    return this.http.post(`${this.BASE_URL}/candle-extinguished`, request);
   }
+
   insertIncenseUsed(request: TimestampPayload) {
-    return this.http.post(`${this.BASE_URL}/incense-used`, request)
+    return this.http.post(`${this.BASE_URL}/incense-used`, request);
   }
+
   insertHuntStarted(request: TimestampPayload) {
-    return this.http.post(`${this.BASE_URL}/hunt-started`, request)
+    return this.http.post(`${this.BASE_URL}/hunt-started`, request);
   }
-  clearEvents(){
-    return this.http.post(`${this.BASE_URL}/clear-events`, {})
+
+  recordTraitObserved(request: TraitObservedPayload) {
+    console.log(request)
+    return this.http.post(`${this.BASE_URL}/trait-observed`, request);
   }
-    // @PostMapping("/clear-events")
-    // public void clearEvents() {
-    //     eventService.clearSession();
-    // }
+
+  clearEvents() {
+    return this.http.post(`${this.BASE_URL}/clear-events`, {});
+  }
 }

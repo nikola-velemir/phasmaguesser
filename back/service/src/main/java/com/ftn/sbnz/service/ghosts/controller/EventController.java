@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ftn.sbnz.model.events.CandleExtinguishedEvent;
 import com.ftn.sbnz.model.events.HuntStartedEvent;
 import com.ftn.sbnz.model.events.IncenceUsedEvent;
+import com.ftn.sbnz.model.events.TraitObservedEvent;
 import com.ftn.sbnz.service.ghosts.dto.TimestampPayloadDTO;
+import com.ftn.sbnz.service.ghosts.dto.TraitObservedRequestDTO;
 import com.ftn.sbnz.service.ghosts.service.EventService;
 
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,11 @@ public class EventController {
     @PostMapping("/incense-used")
     public void insertIncenceUsed(@RequestBody TimestampPayloadDTO timestamp) {
         eventService.insertEvent(new IncenceUsedEvent(timestamp.getTimestamp()));
+    }
+
+    @PostMapping("/trait-observed")
+    public void insertTraitObserved(@RequestBody TraitObservedRequestDTO request) {
+        eventService.insertEvent(new TraitObservedEvent(request.getTimestamp(), request.getTraitName()));
     }
 
     @PostMapping("/clear-events")
