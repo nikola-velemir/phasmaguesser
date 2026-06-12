@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
+import { EventService } from '../../../../service/events/event-service';
 
 // ── Domain types ─────────────────────────────────────────────────────────────
 
@@ -55,15 +56,15 @@ export class InvestigationTracker implements OnDestroy {
   flashingKeys: Record<string, boolean> = {};
 
   private readonly eventLogColors: Record<'hunt' | 'incense' | 'candle', string> = {
-    hunt:    'text-red-400',
+    hunt: 'text-red-400',
     incense: 'text-blue-400',
-    candle:  'text-yellow-300',
+    candle: 'text-yellow-300',
   };
 
   private readonly eventLogLabels: Record<'hunt' | 'incense' | 'candle', string> = {
-    hunt:    'HuntStartedEvent',
+    hunt: 'HuntStartedEvent',
     incense: 'IncenceUsedEvent',
-    candle:  'CandleExtinguishedEvent',
+    candle: 'CandleExtinguishedEvent',
   };
 
   private readonly eventWindows: Record<'hunt' | 'incense' | 'candle', string> = {
@@ -93,6 +94,18 @@ export class InvestigationTracker implements OnDestroy {
       this.eventLogColors[key],
     );
     this.cdr.markForCheck();
+    switch (key) {
+      case 'hunt': {
+        this.insertHuntStarted()
+        break;
+      } case 'incense': {
+        this.insertIncenseUsed()
+        break;
+      } case 'candle': {
+        this.insertCandleExtinguished()
+        break;
+      }
+    }
   }
 
   isFlashing(key: string): boolean {
@@ -140,6 +153,9 @@ export class InvestigationTracker implements OnDestroy {
     this.logs = [];
     this.flashingKeys = {};
     this.nextEffectId = 0;
+
+    this.eventService.clearEvents().subscribe(()=>console.log("Cleared all events!"))
+
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -150,10 +166,23 @@ export class InvestigationTracker implements OnDestroy {
     return `${m}:${s}`;
   }
 
-  constructor(private cdr: ChangeDetectorRef) {}
+  constructor(private cdr: ChangeDetectorRef, private readonly eventService: EventService) { }
 
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
     this.expiryTimers.forEach(t => clearTimeout(t));
+  }
+
+  insertCandleExtinguished() {
+    const timestamp = Date.now()
+    this.eventService.insertCandleExtinguished({ timestamp }).subscribe((res) => console.log(res))
+  }
+  insertHuntStarted() {
+    const timestamp = Date.now()
+    this.eventService.insertHuntStarted({ timestamp }).subscribe((res) => console.log(res))
+  }
+  insertIncenseUsed() {
+    const timestamp = Date.now()
+    this.eventService.insertIncenseUsed({ timestamp }).subscribe((res) => console.log(res))
   }
 }

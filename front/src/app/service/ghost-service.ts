@@ -1,18 +1,17 @@
 import { Injectable } from '@angular/core';
 import { Ghost } from '../features/ghosts/model/ghost';
 import { BehaviorSubject, tap } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-import { IndentifitionRequest } from './indentification-request';
-import { IndentifitionResponse } from './indentification-response';
+import { IndentifitionRequest } from '../model/indentification-request';
 import { Evidence } from '../features/journal/component/evidence-bar/evidence';
 import { Observation } from '../features/journal/component/observation-bar/observation';
+import { IndentificationService } from './identification/indentification-service';
+import { IndentifitionResponse } from '../model/indentification-response';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GhostService {
 
-  private readonly BASE_URL = "http://localhost:8080/api"
   private readonly ghosts: Ghost[] = [
     {
       name: 'Spirit',
@@ -159,7 +158,7 @@ export class GhostService {
       description: 'Ages over time the longer players spend near it, becoming progressively slower and less active. Very aggressive and fast when fresh; relatively docile after prolonged exposure.'
     },
   ];
-  constructor(private readonly http: HttpClient) {
+  constructor(private readonly indentificationService: IndentificationService) {
 
   }
 
@@ -185,26 +184,28 @@ export class GhostService {
       evidence,
       ...observation
     };
-    return this.http.post<IndentifitionResponse>(`${this.BASE_URL}/ghosts`, request).pipe(
-      tap((response) => {
-        const responseGhosts = response.ghosts;
-        const updatedGhosts = this.ghosts.map(localGhost => {
-          const matchingGhostResponse = responseGhosts.find(
-            (rg) => rg.name === localGhost.name
-          );
-          if (!matchingGhostResponse) return null;
-          const clippedScore = Math.max(matchingGhostResponse.score, 0);
-          if (clippedScore == 0 && responseGhosts.length != this.ghosts.length) return null;
-          return {
-            ...localGhost,
-            confidence: clippedScore / response.totalScore * 100
-          }
-        })
-          .filter(s => s !== null);
-
-        this.ghostSubject.next(updatedGhosts);
-      })
+    return this.indentificationService.indentify(request).pipe(
+      tap((response) => this.updateGhosts(response))
     );
   }
+  private updateGhosts(response : IndentifitionResponse) {
+    {
+      const responseGhosts = response.ghosts;
+      const updatedGhosts = this.ghosts.map(localGhost => {
+        const matchingGhostResponse = responseGhosts.find(
+          (rg) => rg.name === localGhost.name
+        );
+        if (!matchingGhostResponse) return null;
+        const clippedScore = Math.max(matchingGhostResponse.score, 0);
+        if (clippedScore == 0 && responseGhosts.length != this.ghosts.length) return null;
+        return {
+          ...localGhost,
+          confidence: clippedScore / response.totalScore * 100
+        }
+      })
+        .filter(s => s !== null);
 
+      this.ghostSubject.next(updatedGhosts);
+    }
+  }
 }

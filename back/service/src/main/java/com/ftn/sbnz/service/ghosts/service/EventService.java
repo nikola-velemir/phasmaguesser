@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.ftn.sbnz.model.events.GhostEvent;
-import com.ftn.sbnz.model.events.TraitObservedEvent;
+import com.ftn.sbnz.model.traits.DerivedTrait;
 
 @Service
 public class EventService {
@@ -17,13 +17,20 @@ public class EventService {
     public EventService(@Qualifier("cepGhostSession") KieSession cepSession) {
         this.cepSession = cepSession;
     }
+
     public synchronized void insertEvent(GhostEvent event) {
         cepSession.insert(event);
     }
-    public List<TraitObservedEvent> getDerivedTraits() {
-        List<TraitObservedEvent> traits = new ArrayList<>();
-        cepSession.getObjects(obj -> obj instanceof TraitObservedEvent)
-                  .forEach(obj -> traits.add((TraitObservedEvent) obj));
+
+    public List<DerivedTrait> getDerivedTraits() {
+        cepSession.fireAllRules();
+        List<DerivedTrait> traits = new ArrayList<>();
+        cepSession.getObjects(obj -> obj instanceof DerivedTrait)
+                .forEach(obj -> traits.add((DerivedTrait) obj));
         return traits;
+    }
+
+    public void clearSession() {
+        cepSession.getFactHandles().forEach(cepSession::delete);
     }
 }

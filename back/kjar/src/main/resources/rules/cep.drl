@@ -97,7 +97,7 @@ when
     $c3 : CandleExtinguishedEvent(
               this != $c1,
               this != $c2,
-              this after[1ms, 30s] $c1
+              this after[1ms, 30s] $c2
           )
     $h  : HuntStartedEvent(
               this after[1ms, 30s] $c3
@@ -109,11 +109,7 @@ then
         "Candle_Extinguish_Trigger",
         "CEP: 3 candles within 30s, hunt " + gap + "s after 3rd"
     ));
-    System.out.println("[CEP - Onryo] Triple candle -> hunt (" + gap
-        + "s after 3rd). Derived: Candle_Extinguish_Trigger");
 end
-
-
 // ───────────────────────────────────────────────────────────────────
 // Rule O-2 : Incense used → hunt starts within 15 s.
 //
@@ -125,23 +121,23 @@ end
 //  Derives "Onryo_Incense_Provokes_Hunt".
 //  Add this trait to Onryo in your data loader + profiles_updated.xlsx.
 // ───────────────────────────────────────────────────────────────────
-rule "CEP_Onryo_Incense_Provokes_Hunt"
-    salience 30
-when
-    $i : IncenceUsedEvent()
-    $h : HuntStartedEvent(
-             this after[1ms, 15s] $i
-         )
-    not DerivedTrait(traitName == "Onryo_Incense_Provokes_Hunt")
-then
-    long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
-    insert(new DerivedTrait(
-        "Onryo_Incense_Provokes_Hunt",
-        "CEP: hunt in " + gap + "s after incense (<=15s = Onryo provocation)"
-    ));
-    System.out.println("[CEP - Onryo] Incense -> hunt in " + gap
-        + "s. Derived: Onryo_Incense_Provokes_Hunt");
-end
+// rule "CEP_Onryo_Incense_Provokes_Hunt"
+//     salience 30
+// when
+//     $i : IncenceUsedEvent()
+//     $h : HuntStartedEvent(
+//              this after[1ms, 15s] $i
+//          )
+//     not DerivedTrait(traitName == "Onryo_Incense_Provokes_Hunt")
+// then
+//     long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
+//     insert(new DerivedTrait(
+//         "Onryo_Incense_Provokes_Hunt",
+//         "CEP: hunt in " + gap + "s after incense (<=15s = Onryo provocation)"
+//     ));
+//     System.out.println("[CEP - Onryo] Incense -> hunt in " + gap
+//         + "s. Derived: Onryo_Incense_Provokes_Hunt");
+// end
 
 
 // ───────────────────────────────────────────────────────────────────
@@ -161,23 +157,23 @@ end
 //    score:     -3
 //    logMessage: Onryo -3 (incense delayed hunt normally, not provoked)
 // ───────────────────────────────────────────────────────────────────
-rule "CEP_Onryo_Incense_Normal_Delay_Penalty"
-    salience 30
-when
-    $i : IncenceUsedEvent()
-    $h : HuntStartedEvent(
-             this after[15s, 90s] $i
-         )
-    not DerivedTrait(traitName == "Onryo_Incense_Normal_Delay")
-then
-    long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
-    insert(new DerivedTrait(
-        "Onryo_Incense_Normal_Delay",
-        "CEP: hunt " + gap + "s after incense — normal smudge, not Onryo"
-    ));
-    System.out.println("[CEP - Onryo penalty] Incense -> hunt in " + gap
-        + "s (normal delay). Derived: Onryo_Incense_Normal_Delay");
-end
+// rule "CEP_Onryo_Incense_Normal_Delay_Penalty"
+//     salience 30
+// when
+//     $i : IncenceUsedEvent()
+//     $h : HuntStartedEvent(
+//              this after[15s, 90s] $i
+//          )
+//     not DerivedTrait(traitName == "Onryo_Incense_Normal_Delay")
+// then
+//     long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
+//     insert(new DerivedTrait(
+//         "Onryo_Incense_Normal_Delay",
+//         "CEP: hunt " + gap + "s after incense — normal smudge, not Onryo"
+//     ));
+//     System.out.println("[CEP - Onryo penalty] Incense -> hunt in " + gap
+//         + "s (normal delay). Derived: Onryo_Incense_Normal_Delay");
+// end
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -244,6 +240,99 @@ end
 //  The `not DerivedTrait` guard prevents double-insertion if the
 //  traits.drt rule already derived it from HuntObservation.
 // ───────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+//  SMUDGE TIMER — Demon / Regular Ghost / Spirit
+//
+//  Sequence: HuntStartedEvent → IncenseUsedEvent → next HuntStartedEvent
+//  We measure the gap between incense and the NEXT hunt after it.
+//
+//  60s – 90s  → Demon        (Short_Smudge_Timer)
+//  90s – 180s → Regular      (Normal_Smudge_Timer)
+//  >180s      → Spirit       (Long_Smudge_Timer)
+//
+//  $h1 is the hunt BEFORE incense (confirms incense was used mid-hunt
+//  or right after). $i must come after $h1. $h2 is the next hunt after
+//  incense. The gap that matters is $h2 - $i.
+// ═══════════════════════════════════════════════════════════════════
+
+// ───────────────────────────────────────────────────────────────────
+// Rule S-1 : Hunt after incense in 60–90 s → Demon
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Smudge_Demon_Short_Timer"
+    salience 30
+when
+    $h1 : HuntStartedEvent()
+    $i  : IncenceUsedEvent(
+              this after[1ms, 300s] $h1
+          )
+    $h2 : HuntStartedEvent(
+              this != $h1,
+              this after[60s, 90s] $i
+          )
+    not DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+then
+    long gap = ($h2.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Early_Hunt_And_Low_Cooldown",
+        "CEP: hunt " + gap + "s after incense (60-90s = Demon)"
+    ));
+    System.out.println("[CEP - Demon] Smudge timer: hunt in " + gap
+        + "s after incense. Derived: Early_Hunt_And_Low_Cooldown");
+end
+
+
+// ───────────────────────────────────────────────────────────────────
+// Rule S-2 : Hunt after incense in 90–180 s → Regular ghost
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Smudge_Normal_Timer"
+    salience 30
+when
+    $h1 : HuntStartedEvent()
+    $i  : IncenceUsedEvent(
+              this after[1ms, 300s] $h1
+          )
+    $h2 : HuntStartedEvent(
+              this != $h1,
+              this after[90s, 180s] $i
+          )
+    not DerivedTrait(traitName == "Normal_Smudge_Timer")
+then
+    long gap = ($h2.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Normal_Smudge_Timer",
+        "CEP: hunt " + gap + "s after incense (90-180s = regular ghost)"
+    ));
+    System.out.println("[CEP - Regular] Smudge timer: hunt in " + gap
+        + "s after incense. Derived: Normal_Smudge_Timer");
+end
+
+
+// ───────────────────────────────────────────────────────────────────
+// Rule S-3 : Hunt after incense after 180 s → Spirit
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Smudge_Spirit_Long_Timer"
+    salience 30
+when
+    $h1 : HuntStartedEvent()
+    $i  : IncenceUsedEvent(
+              this after[1ms, 300s] $h1
+          )
+    $h2 : HuntStartedEvent(
+              this != $h1,
+              this after[180s] $i
+          )
+    not DerivedTrait(traitName == "Long_Smudge_Timer")
+then
+    long gap = ($h2.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Long_Smudge_Timer",
+        "CEP: hunt " + gap + "s after incense (>180s = Spirit)"
+    ));
+    System.out.println("[CEP - Spirit] Smudge timer: hunt in " + gap
+        + "s after incense. Derived: Long_Smudge_Timer");
+end
+
+
 rule "CEP_Mimic_Model_Changing_During_Hunt"
     salience 30
 when

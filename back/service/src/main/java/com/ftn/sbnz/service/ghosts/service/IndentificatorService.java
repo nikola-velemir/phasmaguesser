@@ -4,6 +4,7 @@ import com.ftn.sbnz.model.evidence.CurrentEvidence;
 import com.ftn.sbnz.model.ghosts.Ghost;
 import com.ftn.sbnz.model.ghosts.GhostCandidate;
 import com.ftn.sbnz.model.observations.HuntObservation;
+import com.ftn.sbnz.model.traits.DerivedTrait;
 import com.ftn.sbnz.service.config.GhostProvider;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -40,9 +41,10 @@ public class IndentificatorService {
                 System.out.println("SYS: Inserting HuntObservation...");
                 ksession.insert(huntObservation);
             }
-            
-            System.out.println("Inserting events...");
-            eventService.getDerivedTraits().forEach(ksession::insert);
+
+            List<DerivedTrait> derivedTraits = eventService.getDerivedTraits();
+            System.out.println("Inserting " + derivedTraits.size() + " CEP derived traits...");
+            derivedTraits.forEach(ksession::insert);
 
             System.out.println("Beggining reasoning...");
             int firedRules = ksession.fireAllRules();
@@ -66,7 +68,7 @@ public class IndentificatorService {
                 .collect(Collectors.toList());
         // boolean isAllGhosts = GhostProvider.getGhostNumber() == active.size();
         // if(isAllGhosts){
-        //     active = candidates
+        // active = candidates
         // }
         if (!active.isEmpty()) {
             return active;
