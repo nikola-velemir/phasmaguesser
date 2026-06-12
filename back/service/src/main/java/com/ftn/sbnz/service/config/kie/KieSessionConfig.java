@@ -19,17 +19,17 @@ public class KieSessionConfig {
             @Qualifier("ghostKieContainer") KieContainer container) {
         KieServices ks = KieServices.Factory.get();
         KieSessionConfiguration sessionConf = ks.newKieSessionConfiguration();
-        sessionConf.setOption(ClockTypeOption.get("realtime"));
+        sessionConf.setOption(ClockTypeOption.get("pseudo"));
         return container.newKieSession(sessionConf);
     }
 
     @Bean(name = "cepGhostSession")
-    @Scope("prototype")
+    @Scope("singleton")
     public KieSession cepGhostSession(
             @Qualifier("ghostKieContainer") KieContainer container) {
         KieServices ks = KieServices.Factory.get();
         KieSessionConfiguration sessionConf = ks.newKieSessionConfiguration();
-        sessionConf.setOption(ClockTypeOption.get("realtime"));
+        sessionConf.setOption(ClockTypeOption.get("pseudo"));
         return container.newKieSession(sessionConf);
     }
 

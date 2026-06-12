@@ -126,6 +126,53 @@
     </div>
 
 
+    <!-- ── Advance time ──────────────────────────────────────────────────────── -->
+    <div class="border-b border-zinc-800">
+
+        <div class="flex items-center gap-2.5 px-5 py-2.5 bg-[#1a1a1a] border-b border-zinc-800">
+            <i class="ti ti-clock-fast text-violet-400 text-sm" aria-hidden="true"></i>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Advance time</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-px bg-zinc-800">
+
+            <button [disabled]="!running" (click)="advanceTime(5)"
+                class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-player-skip-forward text-2xl transition-colors"
+                    [ngClass]="running ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                +5 seconds
+                <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('advance5') ? '1' : '0'"></div>
+            </button>
+
+            <button [disabled]="!running" (click)="advanceTime(10)"
+                class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-player-skip-forward text-2xl transition-colors"
+                    [ngClass]="running ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                +10 seconds
+                <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('advance10') ? '1' : '0'"></div>
+            </button>
+
+            <button [disabled]="!running" (click)="advanceTime(30)"
+                class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-player-skip-forward text-2xl transition-colors"
+                    [ngClass]="running ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                +30 seconds
+                <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('advance30') ? '1' : '0'"></div>
+            </button>
+
+        </div>
+    </div>
+
+
     <!-- ── CEP event log ──────────────────────────────────────────────────────── -->
     <div class="border-b border-zinc-800">
 

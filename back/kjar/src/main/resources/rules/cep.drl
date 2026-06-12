@@ -6,39 +6,7 @@ import com.ftn.sbnz.model.events.IncenceUsedEvent;
 import com.ftn.sbnz.model.events.TraitObservedEvent;
 import com.ftn.sbnz.model.traits.DerivedTrait;
 
-/*
- * ═══════════════════════════════════════════════════════════════════
- *  CEP RULES — Onryo & The Mimic
- *  Package: com.ftn.sbnz.kjar.rules  (same as scoring.drl / aggregation_rule.drl)
- *
- *  REQUIRES: kmodule.xml  →  eventProcessingMode="stream"
- *
- *  Pipeline integration
- *  ────────────────────
- *  Every rule inserts a DerivedTrait. That is picked up by
- *  "Score_Ghost_Traits_Dynamically" (scoring.drl) → TraitMatch →
- *  counted by "Compute_Final_Score" (aggregation_rule.drl).
- *  Profile rows in profiles.drt then add bonus scores on top.
- *
- *  DerivedTrait names produced and their consumers
- *  ────────────────────────────────────────────────
- *  "Candle_Extinguish_Trigger"   → Onryo Ghost.traits   + Profile_Onryo_Candle_Trigger_DEFINITIVE     (+5)
- *  "Onryo_Incense_Provokes_Hunt" → Onryo Ghost.traits*  + Profile_Onryo_Incense_Provokes_Hunt_DEFINITIVE (+5)
- *  "Onryo_Incense_Normal_Delay"  → (penalty only, no Ghost.traits entry needed — no TraitMatch fires)
- *  "Copy_Other_Ghosts"           → Mimic Ghost.traits   + Profile_Mimic_Copy_Behavior_HIGH            (+3)
- *  "Model_Changing_During_Hunt"  → Mimic Ghost.traits   + Profile_Mimic_Model_Changing_HIGH           (+3)
- *
- *  * Add "Onryo_Incense_Provokes_Hunt" to Onryo's Ghost.traits in your
- *    data loader. The profile row is in profiles_updated.xlsx.
- *
- *  NOTE on Long_Smudge_Timer (Spirit, traits.xls)
- *  ───────────────────────────────────────────────
- *  Spirit's trait fires when incense DELAYS the hunt >90 s.
- *  Onryo is the opposite: incense PROVOKES a hunt in ≤15 s.
- *  Spirit's rule stays in traits.drt (HuntObservation-based).
- *  Onryo's version is here because it needs temporal CEP operators.
- * ═══════════════════════════════════════════════════════════════════
- */
+
 
 // ── CEP type declarations ────────────────────────────────────────────
 declare CandleExtinguishedEvent
@@ -125,7 +93,7 @@ end
 //     salience 30
 // when
 //     $i : IncenceUsedEvent()
-//     $h : HuntStartedEvent(
+//     $h : HuntStartedEvent(Onryo
 //              this after[1ms, 15s] $i
 //          )
 //     not DerivedTrait(traitName == "Onryo_Incense_Provokes_Hunt")
@@ -311,7 +279,7 @@ end
 // Rule S-3 : Hunt after incense after 180 s → Spirit
 // ───────────────────────────────────────────────────────────────────
 rule "CEP_Smudge_Spirit_Long_Timer"
-    salience 30
+    salience 30 
 when
     $h1 : HuntStartedEvent()
     $i  : IncenceUsedEvent(

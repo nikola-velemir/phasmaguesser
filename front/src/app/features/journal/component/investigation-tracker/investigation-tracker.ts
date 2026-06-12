@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
 import { EventService } from '../../../../service/events/event-service';
+import { ClockService } from '../../../../service/clock/clock-service';
 
 // ── Domain types ─────────────────────────────────────────────────────────────
 
@@ -108,6 +109,29 @@ export class InvestigationTracker implements OnDestroy {
     }
   }
 
+  advanceTime(seconds: 5 | 10 | 30): void {
+    if (!this.running) return;
+
+    // advance frontend display clock
+    this.elapsed += seconds;
+
+    // flash the button
+    const flashKey = `advance${seconds}`;
+    this.flashingKeys = { ...this.flashingKeys, [flashKey]: true };
+    setTimeout(() => {
+      this.flashingKeys = { ...this.flashingKeys, [flashKey]: false };
+      this.cdr.markForCheck();
+    }, 400);
+
+    this.addLog(`Time advanced by ${seconds}s`, 'text-violet-400');
+    this.cdr.markForCheck();
+
+    // tell backend to advance pseudo clock
+    this.clockService.advanceTime(seconds).subscribe(() =>
+      console.log(`Advanced pseudo clock by ${seconds}s`)
+    );
+  }
+
   isFlashing(key: string): boolean {
     return !!this.flashingKeys[key];
   }
@@ -166,7 +190,7 @@ export class InvestigationTracker implements OnDestroy {
     return `${m}:${s}`;
   }
 
-  constructor(private cdr: ChangeDetectorRef, private readonly eventService: EventService) { }
+  constructor(private cdr: ChangeDetectorRef, private readonly eventService: EventService, private readonly clockService : ClockService) { }
 
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
