@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, OnDestroy } from '@angular/core';
-import { EventService } from '../../../../service/events/event-service';
+import { EventApiService } from '../../../../service/events/event-api-service';
 import { ClockService } from '../../../../service/clock/clock-service';
 
 // ── Domain types ─────────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ export class InvestigationTracker implements OnDestroy {
     return `${m}:${s}`;
   }
 
-  constructor(private cdr: ChangeDetectorRef, private readonly eventService: EventService, private readonly clockService : ClockService) { }
+  constructor(private cdr: ChangeDetectorRef, private readonly eventService: EventApiService, private readonly clockService : ClockService) { }
 
   ngOnDestroy(): void {
     if (this.ticker) clearInterval(this.ticker);
