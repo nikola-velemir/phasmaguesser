@@ -174,6 +174,86 @@ end
 //  Derives "Copy_Other_Ghosts" — exact trait name for The Mimic in
 //  ghost-identities.xls. Profile_Mimic_Copy_Behavior_HIGH scores +3.
 // ───────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────
+// Rule M-1a : Two contradictory smudge timers observed in the same
+//             session → Mimic switched which ghost it was copying.
+//
+//  This is the case the user hit:
+//    Hunt → Incense → Hunt (60s)  = Demon behaviour  (Early_Hunt_And_Low_Cooldown)
+//    Hunt → Incense → Hunt (3m)   = Spirit behaviour (Long_Smudge_Timer)
+//
+//  No single real ghost has both a short AND a long smudge timer.
+//  The Mimic does, because it copies a different ghost between rounds.
+//  This is therefore a DEFINITIVE Mimic signal that must be scored.
+//
+//  We detect it from the DerivedTrait facts already inserted by the
+//  smudge timer rules (S-1, S-2, S-3) — no new events needed.
+//
+//  All three pairings are covered:
+//    Short + Long   (Demon then Spirit, or Spirit then Demon)
+//    Short + Normal (Demon then regular, or regular then Demon)
+//    Normal + Long  (regular then Spirit, or Spirit then regular)
+// ───────────────────────────────────────────────────────────────────
+rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Long"
+    salience 35
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Demon smudge timer (60s) AND Spirit smudge timer (>180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] Short + Long smudge timer both observed. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Normal"
+    salience 35
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Demon smudge timer (60s) AND normal smudge timer (90-180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] Short + Normal smudge timer both observed. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Normal_And_Long"
+    salience 35
+when
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Normal smudge timer (90-180s) AND Spirit smudge timer (>180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] Normal + Long smudge timer both observed. Derived: Copy_Other_Ghosts");
+end
+
+// ───────────────────────────────────────────────────────────────────
+// Rule M-1b : Two DIFFERENT ghost-specific traits observed within 90 s
+//             that belong to MUTUALLY EXCLUSIVE ghosts.
+//
+//  TraitObservedEvent.traitName must be a value from the Trait column
+//  of ghost-identities.xls (e.g. "Voice_Sensitivity", "High_Hunt_Speed").
+//  Fire this event from your backend when players confirm a behaviour.
+//
+//  Ghost facts are already in working memory (inserted by
+//  IndentificatorService) so we can verify trait ownership directly.
+//
+//  The `not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))`
+//  guard ensures no single ghost owns both traits — if one did, this
+//  is normal single-ghost behaviour, not a Mimic switch.
+//
+//  Window: 90 s — the Mimic switches every 30–120 s. Wider windows
+//  catch unrelated sequential observations from normal investigations.
+// ───────────────────────────────────────────────────────────────────
 rule "CEP_Mimic_Behaviour_Shift"
     salience 30
 when
@@ -181,13 +261,16 @@ when
     $t2 : TraitObservedEvent(
               this != $t1,
               traitName != $trait1,
-              this after[1ms, 3m] $t1
+              this after[1ms, 90s] $t1
           )
+    Ghost(hasTrait($trait1))
+    Ghost(hasTrait($t2.getTraitName()))
+    not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))
     not DerivedTrait(traitName == "Copy_Other_Ghosts")
 then
     insert(new DerivedTrait(
         "Copy_Other_Ghosts",
-        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 3 min"
+        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 90s — mutually exclusive traits"
     ));
     System.out.println("[CEP - Mimic] Behaviour shift: '" + $trait1
         + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
