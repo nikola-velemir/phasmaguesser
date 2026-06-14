@@ -176,7 +176,12 @@ export class GhostService {
   setSelectedEvidence(e: Evidence[]) {
     this.selectedEvidenceSubject.next(e);
   }
-
+  resetEvidence(){
+    this.selectedEvidenceSubject.next([]);
+  }
+  resetObservation(){
+    this.observationSubject.next({})
+  }
   indetify() {
     const evidence = this.selectedEvidenceSubject.getValue().map(e => e.value);
     const observation = this.observationSubject.getValue();

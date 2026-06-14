@@ -60,12 +60,10 @@ export class ObservationBar implements OnInit, OnDestroy {
     this.running$ = eventService.running$;
 
     this.isRecordButtonDisabled$ = combineLatest([this.running$, this.filledFields$])
-      .pipe(map(([running, filledFields]) => {
-        console.log(running)
-        console.log(filledFields)
-        return running === false || filledFields === 0
+      .pipe(map(([running, filledFields]) =>
+        running === false || filledFields === 0
 
-      }
+
       ))
   }
 
@@ -505,6 +503,7 @@ export class ObservationBar implements OnInit, OnDestroy {
           count++;
         }
       }
+
     }
 
     if (count === 0) return;
@@ -512,6 +511,8 @@ export class ObservationBar implements OnInit, OnDestroy {
     // Flash the button as confirmation
     this.recordFlashing = true;
     setTimeout(() => { this.recordFlashing = false; }, 400);
+    this.resetForm()
+    this.ghostService.resetObservation()
   }
 
   // ── Reset ─────────────────────────────────────────────────────────

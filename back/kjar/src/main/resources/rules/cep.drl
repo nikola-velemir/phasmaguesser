@@ -174,27 +174,6 @@ end
 //  Derives "Copy_Other_Ghosts" — exact trait name for The Mimic in
 //  ghost-identities.xls. Profile_Mimic_Copy_Behavior_HIGH scores +3.
 // ───────────────────────────────────────────────────────────────────
-// ───────────────────────────────────────────────────────────────────
-// Rule M-1 : Two traits observed within 90 s that belong to
-//            TWO DIFFERENT ghosts (verified against Ghost facts).
-//
-//  The old rule fired on any two different trait names — which means
-//  observing e.g. Voice_Sensitivity (Yokai) then Temperature_Based_Speed
-//  (Hantu) within 3 minutes always derived Copy_Other_Ghosts and gave
-//  Mimic 50% of the score, even though those are simply two sequential
-//  normal observations.
-//
-//  The correct condition is:
-//    1. $trait1 belongs to some ghost $g1
-//    2. $trait2 belongs to some ghost $g2
-//    3. $g1 != $g2  — they are mutually exclusive ghost traits
-//    4. No single ghost has BOTH traits (would be normal ghost behaviour)
-//
-//  Window tightened to 90 s: the Mimic switches every 30–120 s, so
-//  seeing two contradictory ghost behaviours within 90 s is the real
-//  tell. A 3-minute window is far too loose and catches unrelated
-//  sequential observations from any normal investigation.
-// ───────────────────────────────────────────────────────────────────
 rule "CEP_Mimic_Behaviour_Shift"
     salience 30
 when
@@ -202,24 +181,16 @@ when
     $t2 : TraitObservedEvent(
               this != $t1,
               traitName != $trait1,
-              this after[1ms, 90s] $t1
+              this after[1ms, 3m] $t1
           )
-    // $g1 owns $trait1, $g2 owns $trait2 — they must be different ghosts
-    $g1 : Ghost(hasTrait($trait1))
-    $g2 : Ghost(hasTrait($t2.getTraitName()), this != $g1)
-    // No single ghost owns both traits — if one did, this is just
-    // a normal ghost and not a Mimic switch
-    not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))
     not DerivedTrait(traitName == "Copy_Other_Ghosts")
 then
     insert(new DerivedTrait(
         "Copy_Other_Ghosts",
-        "CEP: '" + $trait1 + "' (" + $g1.getName() + ") then '"
-            + $t2.getTraitName() + "' (" + $g2.getName() + ") within 90s — mutually exclusive"
+        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 3 min"
     ));
     System.out.println("[CEP - Mimic] Behaviour shift: '" + $trait1
-        + "' (" + $g1.getName() + ") -> '" + $t2.getTraitName()
-        + "' (" + $g2.getName() + "). Derived: Copy_Other_Ghosts");
+        + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
 end
 
 
