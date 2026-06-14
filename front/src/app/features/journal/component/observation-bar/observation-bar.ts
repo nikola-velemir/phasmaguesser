@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { BehaviorSubject, map, Subscription } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, Observable, of, Subscription } from 'rxjs';
 import { Observation } from './observation';
 import { GhostService } from '../../../../service/ghost-service';
 import { EventService } from '../../../../service/events/event-service';
@@ -50,12 +50,24 @@ export interface Section {
   styleUrl: './observation-bar.css',
 })
 export class ObservationBar implements OnInit, OnDestroy {
-
+  running$: Observable<boolean> = of(false);
+  isRecordButtonDisabled$: Observable<boolean> = of(true);
   constructor(
     private ghostService: GhostService,
     private eventService: EventService,
     private eventApiService: EventApiService,
-  ) { }
+  ) {
+    this.running$ = eventService.running$;
+
+    this.isRecordButtonDisabled$ = combineLatest([this.running$, this.filledFields$])
+      .pipe(map(([running, filledFields]) => {
+        console.log(running)
+        console.log(filledFields)
+        return running === false || filledFields === 0
+
+      }
+      ))
+  }
 
   // ── Core reactive state ──────────────────────────────────────────
   readonly state$ = new BehaviorSubject<Partial<Observation>>({});
@@ -108,24 +120,24 @@ export class ObservationBar implements OnInit, OnDestroy {
       iconColor: 'text-orange-400',
       expanded: false,
       items: [
-        {
-          kind: 'toggle',
-          config: {
-            value: '',
-            field: 'incenseUsed',
-            label: 'Incense used before hunt',
-            revealsSectionId: 'incense-time',
-          },
-        },
-        {
-          kind: 'toggle-child',
-          parentSectionId: 'incense-time',
-          config: {
-            field: 'secondsUntilHuntAfterIncense',
-            label: 'Seconds until hunt after incense',
-            hint: 'Leave blank if ghost did not hunt',
-          } as any,
-        },
+        // {
+        //   kind: 'toggle',
+        //   config: {
+        //     value: '',
+        //     field: 'incenseUsed',
+        //     label: 'Incense used before hunt',
+        //     revealsSectionId: 'incense-time',
+        //   },
+        // },
+        // {
+        //   kind: 'toggle-child',
+        //   parentSectionId: 'incense-time',
+        //   config: {
+        //     field: 'secondsUntilHuntAfterIncense',
+        //     label: 'Seconds until hunt after incense',
+        //     hint: 'Leave blank if ghost did not hunt',
+        //   } as any,
+        // },
         {
           kind: 'toggle',
           config: {
@@ -157,14 +169,14 @@ export class ObservationBar implements OnInit, OnDestroy {
       iconColor: 'text-red-400',
       expanded: false,
       items: [
-        {
-          kind: 'number',
-          config: {
-            value: 'High_Hunt_Speed',
-            field: 'highHuntSpeed',
-            label: 'Approximate high hunt speed', placeholder: 'val'
-          },
-        },
+        // {
+        //   kind: 'number',
+        //   config: {
+        //     value: 'High_Hunt_Speed',
+        //     field: 'highHuntSpeed',
+        //     label: 'Approximate high hunt speed', placeholder: 'val'
+        //   },
+        // },
         {
           kind: 'toggle',
           config: {
@@ -237,19 +249,19 @@ export class ObservationBar implements OnInit, OnDestroy {
           kind: 'toggle',
           config: { value: 'Aging_Mechanic', field: 'activityDeclinedOverTime', label: 'Activity declined over time' },
         },
-        {
-          kind: 'select',
-          config: {
-            field: 'ghostActivityLevel',
-            label: 'Overall ghost activity level',
-            options: [
-              { value: 'LOW', label: 'Low' },
-              { value: 'MEDIUM', label: 'Medium' },
-              { value: 'HIGH', label: 'High' },
-              { value: 'EXTREME', label: 'Extreme' },
-            ],
-          },
-        },
+        // {
+        //   kind: 'select',
+        //   config: {
+        //     field: 'ghostActivityLevel',
+        //     label: 'Overall ghost activity level',
+        //     options: [
+        //       { value: 'LOW', label: 'Low' },
+        //       { value: 'MEDIUM', label: 'Medium' },
+        //       { value: 'HIGH', label: 'High' },
+        //       { value: 'EXTREME', label: 'Extreme' },
+        //     ],
+        //   },
+        // },
       ],
     },
     {
@@ -350,18 +362,18 @@ export class ObservationBar implements OnInit, OnDestroy {
       iconColor: 'text-violet-400',
       expanded: false,
       items: [
-        {
-          kind: 'number',
-          config: {
-            field: 'secondsBetweenHunts',
-            label: 'Seconds between hunts',
-            hint: 'Cooldown time observed',
-            placeholder: 'sec',
-          },
-        },
+        // {
+        //   kind: 'number',
+        //   config: {
+        //     field: 'secondsBetweenHunts',
+        //     label: 'Seconds between hunts',
+        //     hint: 'Cooldown time observed',
+        //     placeholder: 'sec',
+        //   },
+        // },
         {
           kind: 'toggle',
-          config: {value: 'Door_Manipulation', field: 'doorSlammedAndLockedInRoom', label: 'Door slammed and locked players in room' },
+          config: { value: 'Door_Manipulation', field: 'doorSlammedAndLockedInRoom', label: 'Door slammed and locked players in room' },
         },
         {
           kind: 'toggle',
@@ -388,7 +400,7 @@ export class ObservationBar implements OnInit, OnDestroy {
           kind: 'toggle-child',
           parentSectionId: 'sanity-drop',
           config: {
-            value:'Curse_And_Speed_Sanity',
+            value: 'Curse_And_Speed_Sanity',
             field: 'playerSanityDroppedFastAfterResponse',
             label: 'Sanity dropped fast after spirit box response',
           },
@@ -398,6 +410,7 @@ export class ObservationBar implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
+    this.running$.subscribe((s) => console.log(s))
     this.sub.add(
       this.state$.subscribe(o => this.ghostService.setObservation(o))
     );

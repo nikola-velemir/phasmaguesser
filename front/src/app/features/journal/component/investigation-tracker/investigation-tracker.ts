@@ -1,6 +1,6 @@
 import { CommonModule } from "@angular/common";
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit } from "@angular/core";
-import { Subscription } from "rxjs";
+import { Observable, of, Subscription } from "rxjs";
 import { EventApiService } from "../../../../service/events/event-api-service";
 import { ClockService } from "../../../../service/clock/clock-service";
 import { ActiveEffect, EventService, LogEntry } from "../../../../service/events/event-service";
@@ -15,8 +15,7 @@ import { ActiveEffect, EventService, LogEntry } from "../../../../service/events
 export class InvestigationTracker implements OnInit, OnDestroy {
 
   // ── Clock ──────────────────────────────────────────────────────────────────
-
-  running = false;
+  running$ : Observable<boolean> = of(false);
   private ticker: ReturnType<typeof setInterval> | null = null;
 
   get elapsed(): number {
@@ -28,7 +27,7 @@ export class InvestigationTracker implements OnInit, OnDestroy {
   }
 
   get clockHunting(): boolean {
-    return this.running && this.effects.some((e) => e.key === "hunt");
+    return this.eventService.isRunning() && this.effects.some((e) => e.key === "hunt");
   }
 
   // ── Projected state from EventService ─────────────────────────────────────
@@ -44,7 +43,9 @@ export class InvestigationTracker implements OnInit, OnDestroy {
     private readonly eventApiService: EventApiService,
     private readonly clockService: ClockService,
     private readonly cdr: ChangeDetectorRef,
-  ) {}
+  ) { 
+    this.running$ = eventService.running$;
+  }
 
   ngOnInit(): void {
     this.subs.add(this.eventService.effects$.subscribe((effects) => {
@@ -69,20 +70,20 @@ export class InvestigationTracker implements OnInit, OnDestroy {
   // ── CEP event triggers ─────────────────────────────────────────────────────
 
   fireCepEvent(key: "hunt" | "incense" | "candle"): void {
-    if (!this.running) return;
+    if (!this.eventService.isRunning()) return;
 
     this.eventService.addEffect(key);
 
     const timestamp = Date.now();
     switch (key) {
-      case "hunt":   this.eventApiService.insertHuntStarted({ timestamp }).subscribe(); break;
+      case "hunt": this.eventApiService.insertHuntStarted({ timestamp }).subscribe(); break;
       case "incense": this.eventApiService.insertIncenseUsed({ timestamp }).subscribe(); break;
-      case "candle":  this.eventApiService.insertCandleExtinguished({ timestamp }).subscribe(); break;
+      case "candle": this.eventApiService.insertCandleExtinguished({ timestamp }).subscribe(); break;
     }
   }
 
   advanceTime(seconds: 5 | 10 | 30): void {
-    if (!this.running) return;
+    if (!this.eventService.isRunning()) return;
 
     this.eventService.setElapsed(this.elapsed + seconds);
     this.eventService.flash(`advance${seconds}`);
@@ -105,8 +106,8 @@ export class InvestigationTracker implements OnInit, OnDestroy {
   // ── Begin / Stop / Reset ───────────────────────────────────────────────────
 
   begin(): void {
-    if (this.running) return;
-    this.running = true;
+    if (this.eventService.isRunning()) return;
+    this.eventService.setIsRunning(true);
     this.eventService.addLog("Investigation begun", "text-zinc-400");
     this.ticker = setInterval(() => {
       this.eventService.tick();
@@ -115,8 +116,8 @@ export class InvestigationTracker implements OnInit, OnDestroy {
   }
 
   stop(): void {
-    if (!this.running) return;
-    this.running = false;
+    if (!this.eventService.isRunning()) return;
+    this.eventService.setIsRunning(false);
     if (this.ticker) { clearInterval(this.ticker); this.ticker = null; }
     this.eventService.addLog(
       `Investigation stopped at ${this.formatTime(this.elapsed)}`,

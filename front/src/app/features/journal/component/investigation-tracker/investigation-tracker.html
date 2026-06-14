@@ -19,18 +19,18 @@
         </div>
 
         <div class="flex gap-2">
-            <button [disabled]="running" (click)="begin()"
+            <button [disabled]="(running$ | async)" (click)="begin()"
                 class="flex items-center gap-2 px-5 py-2.5 rounded-lg border text-[11px] uppercase tracking-[0.15em] transition-all"
-                [ngClass]="running
+                [ngClass]="(running$ | async)
           ? 'border-zinc-800 bg-zinc-900/50 text-zinc-600 cursor-not-allowed'
           : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/40'">
                 <i class="ti ti-player-play text-base" aria-hidden="true"></i>
                 Begin
             </button>
 
-            <button [disabled]="!running" (click)="stop()"
+            <button [disabled]="!(running$ | async)" (click)="stop()"
                 class="flex items-center gap-2 px-5 py-2.5 rounded-lg border text-[11px] uppercase tracking-[0.15em] transition-all"
-                [ngClass]="running
+                [ngClass]="(running$ | async)
           ? 'border-red-800 bg-red-950/30 text-red-400 hover:border-red-500 hover:text-red-300'
           : 'border-zinc-800 bg-zinc-900/50 text-zinc-600 cursor-not-allowed'">
                 <i class="ti ti-player-stop text-base" aria-hidden="true"></i>
@@ -83,41 +83,42 @@
 
         <div class="grid grid-cols-3 gap-px bg-zinc-800">
 
-            <button [disabled]="!running" (click)="fireCepEvent('hunt')"
+            <button [disabled]="!(running$ | async)" (click)="fireCepEvent('hunt')"
                 class="flex flex-col items-center gap-2 px-3 py-5 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
-                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
                 <i class="ti ti-skull text-2xl transition-colors"
-                    [ngClass]="running ? 'text-red-400 group-hover:text-red-300' : 'text-zinc-700'"
+                    [ngClass]="(running$ | async) ? 'text-red-400 group-hover:text-red-300' : 'text-zinc-700'"
                     aria-hidden="true"></i>
                 Hunt started
                 <span class="text-[9px]"
-                    [ngClass]="running ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">120s window</span>
+                    [ngClass]="(running$ | async) ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">120s
+                    window</span>
                 <div class="absolute inset-0 bg-red-500/10 transition-opacity duration-300"
                     [style.opacity]="isFlashing('hunt') ? '1' : '0'"></div>
             </button>
 
-            <button [disabled]="!running" (click)="fireCepEvent('incense')"
+            <button [disabled]="!(running$ | async)" (click)="fireCepEvent('incense')"
                 class="flex flex-col items-center gap-2 px-3 py-5 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
-                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                [ngClass]="running$ ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
                 <i class="ti ti-flame text-2xl transition-colors"
-                    [ngClass]="running ? 'text-blue-400 group-hover:text-blue-300' : 'text-zinc-700'"
+                    [ngClass]="(running$ | async)? 'text-blue-400 group-hover:text-blue-300' : 'text-zinc-700'"
                     aria-hidden="true"></i>
                 Incense used
                 <span class="text-[9px]"
-                    [ngClass]="running ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">3m window</span>
+                    [ngClass]="(running$ | async) ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">3m window</span>
                 <div class="absolute inset-0 bg-blue-500/10 transition-opacity duration-300"
                     [style.opacity]="isFlashing('incense') ? '1' : '0'"></div>
             </button>
 
-            <button [disabled]="!running" (click)="fireCepEvent('candle')"
+            <button [disabled]="!(running$ | async)" (click)="fireCepEvent('candle')"
                 class="flex flex-col items-center gap-2 px-3 py-5 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
-                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
                 <i class="ti ti-candle text-2xl transition-colors"
-                    [ngClass]="running ? 'text-yellow-300 group-hover:text-yellow-200' : 'text-zinc-700'"
+                    [ngClass]="(running$ | async) ? 'text-yellow-300 group-hover:text-yellow-200' : 'text-zinc-700'"
                     aria-hidden="true"></i>
                 Candle blown
                 <span class="text-[9px]"
-                    [ngClass]="running ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">5m window</span>
+                    [ngClass]="(running$ | async) ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">5m window</span>
                 <div class="absolute inset-0 bg-yellow-500/10 transition-opacity duration-300"
                     [style.opacity]="isFlashing('candle') ? '1' : '0'"></div>
             </button>
@@ -136,33 +137,33 @@
 
         <div class="grid grid-cols-3 gap-px bg-zinc-800">
 
-            <button [disabled]="!running" (click)="advanceTime(5)"
+            <button [disabled]="!(running$ | async)" (click)="advanceTime(5)"
                 class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
-                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
                 <i class="ti ti-player-skip-forward text-2xl transition-colors"
-                    [ngClass]="running ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    [ngClass]="(running$ | async) ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
                     aria-hidden="true"></i>
                 +5 seconds
                 <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
                     [style.opacity]="isFlashing('advance5') ? '1' : '0'"></div>
             </button>
 
-            <button [disabled]="!running" (click)="advanceTime(10)"
+            <button [disabled]="!(running$ | async)" (click)="advanceTime(10)"
                 class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
-                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
                 <i class="ti ti-player-skip-forward text-2xl transition-colors"
-                    [ngClass]="running ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    [ngClass]="(running$ | async) ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
                     aria-hidden="true"></i>
                 +10 seconds
                 <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
                     [style.opacity]="isFlashing('advance10') ? '1' : '0'"></div>
             </button>
 
-            <button [disabled]="!running" (click)="advanceTime(30)"
+            <button [disabled]="!(running$ | async)" (click)="advanceTime(30)"
                 class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
-                [ngClass]="running ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
                 <i class="ti ti-player-skip-forward text-2xl transition-colors"
-                    [ngClass]="running ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    [ngClass]="(running$ | async) ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
                     aria-hidden="true"></i>
                 +30 seconds
                 <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"

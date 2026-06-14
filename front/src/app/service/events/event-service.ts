@@ -73,7 +73,7 @@ export class EventService implements OnDestroy {
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
-
+  private readonly _running = new BehaviorSubject<boolean>(false);
   private readonly _effects = new BehaviorSubject<ActiveEffect[]>([]);
   private readonly _logs = new BehaviorSubject<LogEntry[]>([]);
   private readonly _flashingKeys = new BehaviorSubject<Record<string, boolean>>({});
@@ -83,6 +83,7 @@ export class EventService implements OnDestroy {
   readonly logs$ = this._logs.asObservable();
   readonly flashingKeys$ = this._flashingKeys.asObservable();
   readonly traitEvents$ = this._traitEvents.asObservable();
+  readonly running$ = this._running.asObservable();
 
   private nextEffectId = 0;
   private expiryTimers: ReturnType<typeof setTimeout>[] = [];
@@ -123,6 +124,12 @@ export class EventService implements OnDestroy {
     this.addLog(message, colorClass);
   }
 
+  isRunning() {
+    return this._running.value;
+  }
+  setIsRunning(value: boolean) {
+    this._running.next(value);
+  }
   // ── Logs ───────────────────────────────────────────────────────────────────
 
   addLog(message: string, colorClass: string): void {
