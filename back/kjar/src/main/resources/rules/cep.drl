@@ -5,10 +5,10 @@ import com.ftn.sbnz.model.events.HuntStartedEvent;
 import com.ftn.sbnz.model.events.IncenceUsedEvent;
 import com.ftn.sbnz.model.events.TraitObservedEvent;
 import com.ftn.sbnz.model.traits.DerivedTrait;
+import com.ftn.sbnz.model.ghosts.Ghost;
 
 
-
-// ── CEP type declarations ────────────────────────────────────────────
+// ── CEP type declarations ────────────────────────────────────────────────────
 declare CandleExtinguishedEvent
     @role(event)
     @timestamp(timestamp)
@@ -34,26 +34,13 @@ declare TraitObservedEvent
 end
 
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 //  ONRYO
 //
-//  Game mechanic:
-//    - Extinguishes candles instead of hunting normally.
-//    - Hunts after every 3rd candle extinguish (counter resets on hunt).
-//    - Incense resets the counter to 0 (protects players normally).
-//    - BUT: if incense is used at exactly the threshold moment (3rd
-//      candle just blown out), the Onryo hunts immediately instead
-//      of waiting — incense provokes rather than prevents.
-// ═══════════════════════════════════════════════════════════════════
+//  Hunts after every 3rd candle extinguish within 30s windows.
+//  Incense at the threshold provokes rather than prevents a hunt.
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ───────────────────────────────────────────────────────────────────
-// Rule O-1 : 3 candles extinguished within 30 s, then hunt within 30 s
-//            of the third candle.
-//
-//  Derives "Candle_Extinguish_Trigger" — exact trait name in
-//  ghost-identities.xls (Onryo row) and profiles.xls
-//  (Profile_Onryo_Candle_Trigger_DEFINITIVE, +5).
-// ───────────────────────────────────────────────────────────────────
 rule "CEP_Onryo_Triple_Candle_Then_Hunt"
     salience 30
 when
@@ -77,238 +64,21 @@ then
         "Candle_Extinguish_Trigger",
         "CEP: 3 candles within 30s, hunt " + gap + "s after 3rd"
     ));
-end
-// ───────────────────────────────────────────────────────────────────
-// Rule O-2 : Incense used → hunt starts within 15 s.
-//
-//  The Onryo is the ONLY ghost where incense can cause a near-immediate
-//  hunt. All others gain ≥20 s immunity (Spirit gets >90 s).
-//  Threshold 15 s covers real game timing (typically 1–5 s) with
-//  comfortable headroom for input lag.
-//
-//  Derives "Onryo_Incense_Provokes_Hunt".
-//  Add this trait to Onryo in your data loader + profiles_updated.xlsx.
-// ───────────────────────────────────────────────────────────────────
-// rule "CEP_Onryo_Incense_Provokes_Hunt"
-//     salience 30
-// when
-//     $i : IncenceUsedEvent()
-//     $h : HuntStartedEvent(Onryo
-//              this after[1ms, 15s] $i
-//          )
-//     not DerivedTrait(traitName == "Onryo_Incense_Provokes_Hunt")
-// then
-//     long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
-//     insert(new DerivedTrait(
-//         "Onryo_Incense_Provokes_Hunt",
-//         "CEP: hunt in " + gap + "s after incense (<=15s = Onryo provocation)"
-//     ));
-//     System.out.println("[CEP - Onryo] Incense -> hunt in " + gap
-//         + "s. Derived: Onryo_Incense_Provokes_Hunt");
-// end
-
-
-// ───────────────────────────────────────────────────────────────────
-// Rule O-3 (PENALTY): Incense used → hunt comes 16–90 s later.
-//
-//  This is normal ghost smudge behaviour — incense delayed the hunt
-//  but not as long as Spirit (>90 s). NOT consistent with Onryo.
-//  We insert a "penalty" DerivedTrait with a name that has no entry
-//  in any Ghost.traits, so no TraitMatch fires — but a profile row
-//  can reference it directly via a condition in profiles.drt
-//  to subtract points from Onryo.
-//
-//  Add this profile row to profiles.drt data:
-//    ruleName:  Profile_Onryo_Normal_Smudge_Penalty
-//    condition: DerivedTrait(traitName == "Onryo_Incense_Normal_Delay")
-//    ghostName: Onryo
-//    score:     -3
-//    logMessage: Onryo -3 (incense delayed hunt normally, not provoked)
-// ───────────────────────────────────────────────────────────────────
-// rule "CEP_Onryo_Incense_Normal_Delay_Penalty"
-//     salience 30
-// when
-//     $i : IncenceUsedEvent()
-//     $h : HuntStartedEvent(
-//              this after[15s, 90s] $i
-//          )
-//     not DerivedTrait(traitName == "Onryo_Incense_Normal_Delay")
-// then
-//     long gap = ($h.getTimestamp() - $i.getTimestamp()) / 1000;
-//     insert(new DerivedTrait(
-//         "Onryo_Incense_Normal_Delay",
-//         "CEP: hunt " + gap + "s after incense — normal smudge, not Onryo"
-//     ));
-//     System.out.println("[CEP - Onryo penalty] Incense -> hunt in " + gap
-//         + "s (normal delay). Derived: Onryo_Incense_Normal_Delay");
-// end
-
-
-// ═══════════════════════════════════════════════════════════════════
-//  THE MIMIC
-//
-//  Game mechanic:
-//    - Copies a random ghost type every 30–120 s.
-//    - Uses that ghost's speed, hunt behaviour, and special ability.
-//    - Does NOT copy that ghost's evidence set.
-//    - Always shows Ghost Orb as a fake 4th evidence
-//      (already scored: Profile_Mimic_Ghost_Orb_MEDIUM +2).
-//    - Model visually changes during hunts (Model_Changing_During_Hunt).
-//
-//  CEP signal: players observe traits belonging to two DIFFERENT ghost
-//  types in the same investigation window.
-// ═══════════════════════════════════════════════════════════════════
-
-// ───────────────────────────────────────────────────────────────────
-// Rule M-1 : Two DIFFERENT trait names observed within 3 minutes.
-//
-//  TraitObservedEvent.traitName must be one of the Trait column values
-//  from ghost-identities.xls: "High_Hunt_Speed", "Voice_Sensitivity",
-//  "Candle_Extinguish_Trigger", "Attack_In_Darkness", etc.
-//  Fire this event from your backend when players confirm a behaviour.
-//
-//  Window: 3 min. The Mimic switches every 30–120 s, so two different
-//  traits are nearly guaranteed within 3 min for a real Mimic.
-//  No normal ghost ever produces two different trait types.
-//
-//  Derives "Copy_Other_Ghosts" — exact trait name for The Mimic in
-//  ghost-identities.xls. Profile_Mimic_Copy_Behavior_HIGH scores +3.
-// ───────────────────────────────────────────────────────────────────
-// ───────────────────────────────────────────────────────────────────
-// Rule M-1a : Two contradictory smudge timers observed in the same
-//             session → Mimic switched which ghost it was copying.
-//
-//  This is the case the user hit:
-//    Hunt → Incense → Hunt (60s)  = Demon behaviour  (Early_Hunt_And_Low_Cooldown)
-//    Hunt → Incense → Hunt (3m)   = Spirit behaviour (Long_Smudge_Timer)
-//
-//  No single real ghost has both a short AND a long smudge timer.
-//  The Mimic does, because it copies a different ghost between rounds.
-//  This is therefore a DEFINITIVE Mimic signal that must be scored.
-//
-//  We detect it from the DerivedTrait facts already inserted by the
-//  smudge timer rules (S-1, S-2, S-3) — no new events needed.
-//
-//  All three pairings are covered:
-//    Short + Long   (Demon then Spirit, or Spirit then Demon)
-//    Short + Normal (Demon then regular, or regular then Demon)
-//    Normal + Long  (regular then Spirit, or Spirit then regular)
-// ───────────────────────────────────────────────────────────────────
-rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Long"
-    salience 35
-when
-    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
-    DerivedTrait(traitName == "Long_Smudge_Timer")
-    not DerivedTrait(traitName == "Copy_Other_Ghosts")
-then
-    insert(new DerivedTrait(
-        "Copy_Other_Ghosts",
-        "CEP: Demon smudge timer (60s) AND Spirit smudge timer (>180s) both observed — Mimic switched"
-    ));
-    System.out.println("[CEP - Mimic] Short + Long smudge timer both observed. Derived: Copy_Other_Ghosts");
-end
-
-rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Normal"
-    salience 35
-when
-    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
-    DerivedTrait(traitName == "Normal_Smudge_Timer")
-    not DerivedTrait(traitName == "Copy_Other_Ghosts")
-then
-    insert(new DerivedTrait(
-        "Copy_Other_Ghosts",
-        "CEP: Demon smudge timer (60s) AND normal smudge timer (90-180s) both observed — Mimic switched"
-    ));
-    System.out.println("[CEP - Mimic] Short + Normal smudge timer both observed. Derived: Copy_Other_Ghosts");
-end
-
-rule "CEP_Mimic_Smudge_Timer_Shift_Normal_And_Long"
-    salience 35
-when
-    DerivedTrait(traitName == "Normal_Smudge_Timer")
-    DerivedTrait(traitName == "Long_Smudge_Timer")
-    not DerivedTrait(traitName == "Copy_Other_Ghosts")
-then
-    insert(new DerivedTrait(
-        "Copy_Other_Ghosts",
-        "CEP: Normal smudge timer (90-180s) AND Spirit smudge timer (>180s) both observed — Mimic switched"
-    ));
-    System.out.println("[CEP - Mimic] Normal + Long smudge timer both observed. Derived: Copy_Other_Ghosts");
-end
-
-// ───────────────────────────────────────────────────────────────────
-// Rule M-1b : Two DIFFERENT ghost-specific traits observed within 90 s
-//             that belong to MUTUALLY EXCLUSIVE ghosts.
-//
-//  TraitObservedEvent.traitName must be a value from the Trait column
-//  of ghost-identities.xls (e.g. "Voice_Sensitivity", "High_Hunt_Speed").
-//  Fire this event from your backend when players confirm a behaviour.
-//
-//  Ghost facts are already in working memory (inserted by
-//  IndentificatorService) so we can verify trait ownership directly.
-//
-//  The `not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))`
-//  guard ensures no single ghost owns both traits — if one did, this
-//  is normal single-ghost behaviour, not a Mimic switch.
-//
-//  Window: 90 s — the Mimic switches every 30–120 s. Wider windows
-//  catch unrelated sequential observations from normal investigations.
-// ───────────────────────────────────────────────────────────────────
-rule "CEP_Mimic_Behaviour_Shift"
-    salience 30
-when
-    $t1 : TraitObservedEvent($trait1 : traitName)
-    $t2 : TraitObservedEvent(
-              this != $t1,
-              traitName != $trait1,
-              this after[1ms, 90s] $t1
-          )
-    Ghost(hasTrait($trait1))
-    Ghost(hasTrait($t2.getTraitName()))
-    not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))
-    not DerivedTrait(traitName == "Copy_Other_Ghosts")
-then
-    insert(new DerivedTrait(
-        "Copy_Other_Ghosts",
-        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 90s — mutually exclusive traits"
-    ));
-    System.out.println("[CEP - Mimic] Behaviour shift: '" + $trait1
-        + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
+    System.out.println("[CEP - Onryo] Triple candle then hunt. Derived: Candle_Extinguish_Trigger");
 end
 
 
-// ───────────────────────────────────────────────────────────────────
-// Rule M-2 : Model visibly changed during a hunt (within 120 s).
-//
-//  Players fire TraitObservedEvent(traitName="Model_Changing_During_Hunt")
-//  when they see the ghost's appearance change mid-hunt.
-//
-//  "Model_Changing_During_Hunt" is already in traits.xls with a
-//  HuntObservation-based condition (modelChangingDuringHunt == true).
-//  This CEP rule catches the same trait from the event stream instead,
-//  useful when HuntObservation is not populated but the event is fired.
-//
-//  The `not DerivedTrait` guard prevents double-insertion if the
-//  traits.drt rule already derived it from HuntObservation.
-// ───────────────────────────────────────────────────────────────────
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
 //  SMUDGE TIMER — Demon / Regular Ghost / Spirit
 //
 //  Sequence: HuntStartedEvent → IncenseUsedEvent → next HuntStartedEvent
-//  We measure the gap between incense and the NEXT hunt after it.
+//  Gap measured between incense and the NEXT hunt after it.
 //
-//  60s – 90s  → Demon        (Short_Smudge_Timer)
-//  90s – 180s → Regular      (Normal_Smudge_Timer)
-//  >180s      → Spirit       (Long_Smudge_Timer)
-//
-//  $h1 is the hunt BEFORE incense (confirms incense was used mid-hunt
-//  or right after). $i must come after $h1. $h2 is the next hunt after
-//  incense. The gap that matters is $h2 - $i.
-// ═══════════════════════════════════════════════════════════════════
+//  60–90s   → Demon   (Early_Hunt_And_Low_Cooldown)
+//  90–180s  → Regular (Normal_Smudge_Timer)
+//  >180s    → Spirit  (Long_Smudge_Timer)
+// ═══════════════════════════════════════════════════════════════════════════
 
-// ───────────────────────────────────────────────────────────────────
-// Rule S-1 : Hunt after incense in 60–90 s → Demon
-// ───────────────────────────────────────────────────────────────────
 rule "CEP_Smudge_Demon_Short_Timer"
     salience 30
 when
@@ -327,14 +97,9 @@ then
         "Early_Hunt_And_Low_Cooldown",
         "CEP: hunt " + gap + "s after incense (60-90s = Demon)"
     ));
-    System.out.println("[CEP - Demon] Smudge timer: hunt in " + gap
-        + "s after incense. Derived: Early_Hunt_And_Low_Cooldown");
+    System.out.println("[CEP - Demon] Smudge timer: " + gap + "s. Derived: Early_Hunt_And_Low_Cooldown");
 end
 
-
-// ───────────────────────────────────────────────────────────────────
-// Rule S-2 : Hunt after incense in 90–180 s → Regular ghost
-// ───────────────────────────────────────────────────────────────────
 rule "CEP_Smudge_Normal_Timer"
     salience 30
 when
@@ -353,16 +118,11 @@ then
         "Normal_Smudge_Timer",
         "CEP: hunt " + gap + "s after incense (90-180s = regular ghost)"
     ));
-    System.out.println("[CEP - Regular] Smudge timer: hunt in " + gap
-        + "s after incense. Derived: Normal_Smudge_Timer");
+    System.out.println("[CEP - Regular] Smudge timer: " + gap + "s. Derived: Normal_Smudge_Timer");
 end
 
-
-// ───────────────────────────────────────────────────────────────────
-// Rule S-3 : Hunt after incense after 180 s → Spirit
-// ───────────────────────────────────────────────────────────────────
 rule "CEP_Smudge_Spirit_Long_Timer"
-    salience 30 
+    salience 30
 when
     $h1 : HuntStartedEvent()
     $i  : IncenceUsedEvent(
@@ -379,10 +139,184 @@ then
         "Long_Smudge_Timer",
         "CEP: hunt " + gap + "s after incense (>180s = Spirit)"
     ));
-    System.out.println("[CEP - Spirit] Smudge timer: hunt in " + gap
-        + "s after incense. Derived: Long_Smudge_Timer");
+    System.out.println("[CEP - Spirit] Smudge timer: " + gap + "s. Derived: Long_Smudge_Timer");
 end
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  THE MIMIC
+//
+//  Copies a random ghost every 30–120s. Signal: contradictory behaviours
+//  that no single ghost can produce.
+//
+//  Four independent detection paths — any one is sufficient:
+//    M-1a : Two contradictory smudge timers (DerivedTrait × DerivedTrait)
+//    M-1b : Two mutually exclusive TraitObservedEvents (event × event)
+//    M-1c : A TraitObservedEvent contradicts a smudge-derived trait
+//            (event × DerivedTrait) — the gap your scenario hits
+//    M-2  : Model visibly changes during a hunt
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── M-1a : Contradictory smudge timers ──────────────────────────────────────
+//  Pure DerivedTrait matching — no temporal window needed because the
+//  contradiction itself is the signal regardless of when it was observed.
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Long"
+    salience 35
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Demon smudge (60-90s) AND Spirit smudge (>180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1a Short+Long smudge. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Normal"
+    salience 35
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Demon smudge (60-90s) AND normal smudge (90-180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1a Short+Normal smudge. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Normal_And_Long"
+    salience 35
+when
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Normal smudge (90-180s) AND Spirit smudge (>180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1a Normal+Long smudge. Derived: Copy_Other_Ghosts");
+end
+
+
+// ── M-1b : Two mutually exclusive TraitObservedEvents ───────────────────────
+//  Window extended to 5m — Mimic switches every 30-120s so two player
+//  observations can easily be several minutes apart within one investigation.
+//  The not Ghost(...) guard ensures no single real ghost owns both traits.
+
+rule "CEP_Mimic_Behaviour_Shift"
+    salience 30
+when
+    $t1 : TraitObservedEvent($trait1 : traitName)
+    $t2 : TraitObservedEvent(
+              this != $t1,
+              traitName != $trait1,
+              this after[1ms, 5m] $t1
+          )
+    Ghost(hasTrait($trait1))
+    Ghost(hasTrait($t2.getTraitName()))
+    not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 5m — mutually exclusive traits"
+    ));
+    System.out.println("[CEP - Mimic] M-1b Behaviour shift: '" + $trait1
+        + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
+end
+
+
+// ── M-1c : TraitObservedEvent contradicts a smudge-derived trait ─────────────
+//  This is the gap your scenario hits:
+//    Player observes Temperature_Based_Speed (TraitObservedEvent)
+//    CEP later derives Early_Hunt_And_Low_Cooldown (Demon smudge timer)
+//    No single ghost has both — Mimic is copying two different ghosts.
+//
+//  We enumerate the three smudge DerivedTraits against trait observations
+//  that belong to ghosts which CANNOT have that smudge behaviour.
+//  "Cannot have" = no Ghost fact exists that owns both the observed trait
+//  AND the smudge trait — same guard as M-1b but crossing fact types.
+//
+//  Note: smudge DerivedTraits are not TraitObservedEvents so `after` cannot
+//  be used. The contradiction itself is the temporal signal — order and
+//  timing don't matter, only that both facts coexist in the session.
+
+rule "CEP_Mimic_Trait_Contradicts_Short_Smudge"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Early_Hunt_And_Low_Cooldown"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but Demon smudge timer also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Early_Hunt_And_Low_Cooldown. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Trait_Contradicts_Normal_Smudge"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Normal_Smudge_Timer"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but normal smudge timer also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Normal_Smudge_Timer. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Trait_Contradicts_Long_Smudge"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Long_Smudge_Timer"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but Spirit smudge timer also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Long_Smudge_Timer. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Trait_Contradicts_Candle_Trigger"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Candle_Extinguish_Trigger")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Candle_Extinguish_Trigger"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but Onryo candle trigger also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Candle_Extinguish_Trigger. Derived: Copy_Other_Ghosts");
+end
+
+
+// ── M-2 : Model visibly changes during a hunt ───────────────────────────────
 
 rule "CEP_Mimic_Model_Changing_During_Hunt"
     salience 30
@@ -399,6 +333,5 @@ then
         "Model_Changing_During_Hunt",
         "CEP: model change observed " + gap + "s into hunt"
     ));
-    System.out.println("[CEP - Mimic] Model change " + gap
-        + "s after hunt start. Derived: Model_Changing_During_Hunt");
+    System.out.println("[CEP - Mimic] M-2 Model change " + gap + "s after hunt. Derived: Model_Changing_During_Hunt");
 end

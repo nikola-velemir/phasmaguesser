@@ -496,10 +496,13 @@ export class ObservationBar implements OnInit, OnDestroy {
         if (this.isFilled(value)) {
           const coerced = value as boolean | number | string | null;
           this.eventService.recordTraitObserved(field, item.config.label, coerced);
-          this.eventApiService.recordTraitObserved({
-            traitName: item.config.label,
-            timestamp: Date.now(),
-          }).subscribe();
+          const traitName = item.config.value;
+          if (traitName) {
+            this.eventApiService.recordTraitObserved({
+              traitName,
+              timestamp: Date.now(),
+            }).subscribe();
+          }
           count++;
         }
       }

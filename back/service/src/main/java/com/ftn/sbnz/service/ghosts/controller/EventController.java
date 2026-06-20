@@ -38,6 +38,7 @@ public class EventController {
 
     @PostMapping("/trait-observed")
     public void insertTraitObserved(@RequestBody TraitObservedRequestDTO request) {
+        System.out.println(request.getTraitName());
         eventService.insertEvent(new TraitObservedEvent(request.getTimestamp(), request.getTraitName()));
     }
 
