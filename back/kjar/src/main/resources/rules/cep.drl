@@ -1,0 +1,280 @@
+package com.ftn.sbnz.kjar.rules
+
+import com.ftn.sbnz.model.events.CandleExtinguishedEvent;
+import com.ftn.sbnz.model.events.HuntStartedEvent;
+import com.ftn.sbnz.model.events.IncenceUsedEvent;
+import com.ftn.sbnz.model.events.TraitObservedEvent;
+import com.ftn.sbnz.model.traits.DerivedTrait;
+import com.ftn.sbnz.model.ghosts.Ghost;
+
+
+declare CandleExtinguishedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(2m)
+end
+
+declare HuntStartedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(5m)
+end
+
+declare IncenceUsedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(5m)
+end
+
+declare TraitObservedEvent
+    @role(event)
+    @timestamp(timestamp)
+    @expires(10m)
+end
+
+rule "CEP_Onryo_Triple_Candle_Then_Hunt"
+    salience 30
+when
+    $c1 : CandleExtinguishedEvent()
+    $c2 : CandleExtinguishedEvent(
+              this != $c1,
+              this after[1ms, 30s] $c1
+          )
+    $c3 : CandleExtinguishedEvent(
+              this != $c1,
+              this != $c2,
+              this after[1ms, 30s] $c2
+          )
+    $h  : HuntStartedEvent(
+              this after[1ms, 30s] $c3
+          )
+    not DerivedTrait(traitName == "Candle_Extinguish_Trigger")
+then
+    long gap = ($h.getTimestamp() - $c3.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Candle_Extinguish_Trigger",
+        "CEP: 3 candles within 30s, hunt " + gap + "s after 3rd"
+    ));
+    System.out.println("[CEP - Onryo] Triple candle then hunt. Derived: Candle_Extinguish_Trigger");
+end
+
+
+
+rule "CEP_Smudge_Demon_Short_Timer"
+    salience 30
+when
+    $h1 : HuntStartedEvent()
+    $i  : IncenceUsedEvent(
+              this after[1ms, 300s] $h1
+          )
+    $h2 : HuntStartedEvent(
+              this != $h1,
+              this after[60s, 90s] $i
+          )
+    not DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+then
+    long gap = ($h2.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Early_Hunt_And_Low_Cooldown",
+        "CEP: hunt " + gap + "s after incense (60-90s = Demon)"
+    ));
+    System.out.println("[CEP - Demon] Smudge timer: " + gap + "s. Derived: Early_Hunt_And_Low_Cooldown");
+end
+
+rule "CEP_Smudge_Normal_Timer"
+    salience 30
+when
+    $h1 : HuntStartedEvent()
+    $i  : IncenceUsedEvent(
+              this after[1ms, 300s] $h1
+          )
+    $h2 : HuntStartedEvent(
+              this != $h1,
+              this after[90s, 180s] $i
+          )
+    not DerivedTrait(traitName == "Normal_Smudge_Timer")
+then
+    long gap = ($h2.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Normal_Smudge_Timer",
+        "CEP: hunt " + gap + "s after incense (90-180s = regular ghost)"
+    ));
+    System.out.println("[CEP - Regular] Smudge timer: " + gap + "s. Derived: Normal_Smudge_Timer");
+end
+
+rule "CEP_Smudge_Spirit_Long_Timer"
+    salience 30
+when
+    $h1 : HuntStartedEvent()
+    $i  : IncenceUsedEvent(
+              this after[1ms, 300s] $h1
+          )
+    $h2 : HuntStartedEvent(
+              this != $h1,
+              this after[180s] $i
+          )
+    not DerivedTrait(traitName == "Long_Smudge_Timer")
+then
+    long gap = ($h2.getTimestamp() - $i.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Long_Smudge_Timer",
+        "CEP: hunt " + gap + "s after incense (>180s = Spirit)"
+    ));
+    System.out.println("[CEP - Spirit] Smudge timer: " + gap + "s. Derived: Long_Smudge_Timer");
+end
+
+
+
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Long"
+    salience 35
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Demon smudge (60-90s) AND Spirit smudge (>180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1a Short+Long smudge. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Normal"
+    salience 35
+when
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Demon smudge (60-90s) AND normal smudge (90-180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1a Short+Normal smudge. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Smudge_Timer_Shift_Normal_And_Long"
+    salience 35
+when
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: Normal smudge (90-180s) AND Spirit smudge (>180s) both observed — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1a Normal+Long smudge. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Behaviour_Shift"
+    salience 30
+when
+    $t1 : TraitObservedEvent($trait1 : traitName)
+    $t2 : TraitObservedEvent(
+              this != $t1,
+              traitName != $trait1,
+              this after[1ms, 5m] $t1
+          )
+    Ghost(hasTrait($trait1))
+    Ghost(hasTrait($t2.getTraitName()))
+    not Ghost(hasTrait($trait1) && hasTrait($t2.getTraitName()))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: '" + $trait1 + "' then '" + $t2.getTraitName() + "' within 5m — mutually exclusive traits"
+    ));
+    System.out.println("[CEP - Mimic] M-1b Behaviour shift: '" + $trait1
+        + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
+end
+
+
+rule "CEP_Mimic_Trait_Contradicts_Short_Smudge"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Early_Hunt_And_Low_Cooldown")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Early_Hunt_And_Low_Cooldown"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but Demon smudge timer also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Early_Hunt_And_Low_Cooldown. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Trait_Contradicts_Normal_Smudge"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Normal_Smudge_Timer")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Normal_Smudge_Timer"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but normal smudge timer also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Normal_Smudge_Timer. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Trait_Contradicts_Long_Smudge"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Long_Smudge_Timer")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Long_Smudge_Timer"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but Spirit smudge timer also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Long_Smudge_Timer. Derived: Copy_Other_Ghosts");
+end
+
+rule "CEP_Mimic_Trait_Contradicts_Candle_Trigger"
+    salience 35
+when
+    $t  : TraitObservedEvent($traitName : traitName)
+    DerivedTrait(traitName == "Candle_Extinguish_Trigger")
+    Ghost(hasTrait($traitName))
+    not Ghost(hasTrait($traitName) && hasTrait("Candle_Extinguish_Trigger"))
+    not DerivedTrait(traitName == "Copy_Other_Ghosts")
+then
+    insert(new DerivedTrait(
+        "Copy_Other_Ghosts",
+        "CEP: observed '" + $traitName + "' but Onryo candle trigger also seen — Mimic switched"
+    ));
+    System.out.println("[CEP - Mimic] M-1c '" + $traitName
+        + "' contradicts Candle_Extinguish_Trigger. Derived: Copy_Other_Ghosts");
+end
+
+
+
+rule "CEP_Mimic_Model_Changing_During_Hunt"
+    salience 30
+when
+    $h : HuntStartedEvent()
+    $t : TraitObservedEvent(
+             traitName == "Model_Changing_During_Hunt",
+             this after[1ms, 120s] $h
+         )
+    not DerivedTrait(traitName == "Model_Changing_During_Hunt")
+then
+    long gap = ($t.getTimestamp() - $h.getTimestamp()) / 1000;
+    insert(new DerivedTrait(
+        "Model_Changing_During_Hunt",
+        "CEP: model change observed " + gap + "s into hunt"
+    ));
+    System.out.println("[CEP - Mimic] M-2 Model change " + gap + "s after hunt. Derived: Model_Changing_During_Hunt");
+end

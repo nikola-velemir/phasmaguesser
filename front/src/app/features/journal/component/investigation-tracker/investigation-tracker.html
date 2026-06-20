@@ -1,0 +1,210 @@
+<!-- investigation-tracker.html -->
+<div class="bg-[#111111] text-zinc-100 font-mono">
+
+    <!-- ── Clock bar ─────────────────────────────────────────────────────────── -->
+    <div class="bg-[#0a0a0a] border-b border-zinc-800 px-5 py-3 flex items-center justify-between">
+
+        <div class="flex items-center gap-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800">
+                <i class="ti ti-ghost text-xl"
+                    [ngClass]="clockHunting ? 'text-red-400 animate-pulse' : 'text-violet-400'" aria-hidden="true"></i>
+            </div>
+            <div>
+                <p class="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Investigation time</p>
+                <p class="text-3xl font-bold tracking-widest tabular-nums leading-none"
+                    [ngClass]="clockHunting ? 'text-red-400' : 'text-violet-400'">
+                    {{ clockDisplay }}
+                </p>
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button [disabled]="(running$ | async)" (click)="begin()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-lg border text-[11px] uppercase tracking-[0.15em] transition-all"
+                [ngClass]="(running$ | async)
+          ? 'border-zinc-800 bg-zinc-900/50 text-zinc-600 cursor-not-allowed'
+          : 'border-zinc-700 bg-zinc-800 text-zinc-300 hover:border-emerald-500 hover:text-emerald-300 hover:bg-emerald-950/40'">
+                <i class="ti ti-player-play text-base" aria-hidden="true"></i>
+                Begin
+            </button>
+
+            <button [disabled]="!(running$ | async)" (click)="stop()"
+                class="flex items-center gap-2 px-5 py-2.5 rounded-lg border text-[11px] uppercase tracking-[0.15em] transition-all"
+                [ngClass]="(running$ | async)
+          ? 'border-red-800 bg-red-950/30 text-red-400 hover:border-red-500 hover:text-red-300'
+          : 'border-zinc-800 bg-zinc-900/50 text-zinc-600 cursor-not-allowed'">
+                <i class="ti ti-player-stop text-base" aria-hidden="true"></i>
+                Stop
+            </button>
+        </div>
+    </div>
+
+
+    <!-- ── Active CEP windows ─────────────────────────────────────────────────── -->
+    <div class="flex flex-wrap items-center gap-2 px-5 py-2.5 border-b border-zinc-800 bg-[#0d0d0d] min-h-[44px]">
+
+        <span *ngIf="effects.length === 0" class="text-[10px] italic text-zinc-600">
+            No active CEP windows
+        </span>
+
+        <div class="grid grid-cols-3 gap-4">
+            <ng-container *ngFor="let effect of effects; trackBy: trackEffectById">
+
+                <div *ngIf="effect.key === 'hunt'"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] uppercase tracking-wider border-red-800 text-red-400 bg-red-950/30">
+                    <i class="ti ti-skull text-sm" aria-hidden="true"></i>
+                    Hunt started
+                </div>
+
+                <div *ngIf="effect.key === 'incense'"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] uppercase tracking-wider border-blue-700 text-blue-400 bg-blue-950/30">
+                    <i class="ti ti-flame text-sm" aria-hidden="true"></i>
+                    Incense used
+                </div>
+
+                <div *ngIf="effect.key === 'candle'"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] uppercase tracking-wider border-yellow-600 text-yellow-300 bg-yellow-950/30">
+                    <i class="ti ti-candle text-sm" aria-hidden="true"></i>
+                    Candle blown
+                </div>
+
+            </ng-container>
+        </div>
+    </div>
+
+
+    <!-- ── CEP event triggers ──────────────────────────────────────────────────── -->
+    <div class="border-b border-zinc-800">
+
+        <div class="flex items-center gap-2.5 px-5 py-2.5 bg-[#1a1a1a] border-b border-zinc-800">
+            <i class="ti ti-bolt text-violet-400 text-sm" aria-hidden="true"></i>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-zinc-500">CEP events</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-px bg-zinc-800">
+
+            <button [disabled]="!(running$ | async)" (click)="fireCepEvent('hunt')"
+                class="flex flex-col items-center gap-2 px-3 py-5 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-skull text-2xl transition-colors"
+                    [ngClass]="(running$ | async) ? 'text-red-400 group-hover:text-red-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                Hunt started
+                <span class="text-[9px]"
+                    [ngClass]="(running$ | async) ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">120s
+                    window</span>
+                <div class="absolute inset-0 bg-red-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('hunt') ? '1' : '0'"></div>
+            </button>
+
+            <button [disabled]="!(running$ | async)" (click)="fireCepEvent('incense')"
+                class="flex flex-col items-center gap-2 px-3 py-5 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="running$ ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-flame text-2xl transition-colors"
+                    [ngClass]="(running$ | async)? 'text-blue-400 group-hover:text-blue-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                Incense used
+                <span class="text-[9px]"
+                    [ngClass]="(running$ | async) ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">3m window</span>
+                <div class="absolute inset-0 bg-blue-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('incense') ? '1' : '0'"></div>
+            </button>
+
+            <button [disabled]="!(running$ | async)" (click)="fireCepEvent('candle')"
+                class="flex flex-col items-center gap-2 px-3 py-5 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-candle text-2xl transition-colors"
+                    [ngClass]="(running$ | async) ? 'text-yellow-300 group-hover:text-yellow-200' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                Candle blown
+                <span class="text-[9px]"
+                    [ngClass]="(running$ | async) ? 'text-zinc-600 group-hover:text-zinc-500' : 'text-zinc-800'">5m window</span>
+                <div class="absolute inset-0 bg-yellow-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('candle') ? '1' : '0'"></div>
+            </button>
+
+        </div>
+    </div>
+
+
+    <!-- ── Advance time ──────────────────────────────────────────────────────── -->
+    <div class="border-b border-zinc-800">
+
+        <div class="flex items-center gap-2.5 px-5 py-2.5 bg-[#1a1a1a] border-b border-zinc-800">
+            <i class="ti ti-clock-fast text-violet-400 text-sm" aria-hidden="true"></i>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Advance time</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-px bg-zinc-800">
+
+            <button [disabled]="!(running$ | async)" (click)="advanceTime(5)"
+                class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-player-skip-forward text-2xl transition-colors"
+                    [ngClass]="(running$ | async) ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                +5 seconds
+                <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('advance5') ? '1' : '0'"></div>
+            </button>
+
+            <button [disabled]="!(running$ | async)" (click)="advanceTime(10)"
+                class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-player-skip-forward text-2xl transition-colors"
+                    [ngClass]="(running$ | async) ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                +10 seconds
+                <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('advance10') ? '1' : '0'"></div>
+            </button>
+
+            <button [disabled]="!(running$ | async)" (click)="advanceTime(30)"
+                class="flex flex-col items-center gap-1 px-3 py-4 bg-[#111111] text-[10px] uppercase tracking-[0.12em] transition-all relative overflow-hidden group"
+                [ngClass]="(running$ | async) ? 'text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200' : 'text-zinc-700 cursor-not-allowed'">
+                <i class="ti ti-player-skip-forward text-2xl transition-colors"
+                    [ngClass]="(running$ | async) ? 'text-violet-400 group-hover:text-violet-300' : 'text-zinc-700'"
+                    aria-hidden="true"></i>
+                +30 seconds
+                <div class="absolute inset-0 bg-violet-500/10 transition-opacity duration-300"
+                    [style.opacity]="isFlashing('advance30') ? '1' : '0'"></div>
+            </button>
+
+        </div>
+    </div>
+
+
+    <!-- ── CEP event log ──────────────────────────────────────────────────────── -->
+    <div class="border-b border-zinc-800">
+
+        <div class="flex items-center gap-2.5 px-5 py-2.5 bg-[#1a1a1a] border-b border-zinc-800">
+            <i class="ti ti-terminal text-violet-400 text-sm" aria-hidden="true"></i>
+            <span class="text-[11px] uppercase tracking-[0.2em] text-zinc-500">CEP event log</span>
+        </div>
+
+        <div class="bg-[#0a0a0a] max-h-48 overflow-y-auto divide-y divide-zinc-900">
+            <p *ngIf="logs.length === 0" class="px-5 py-3 text-[10px] italic text-zinc-600">
+                Awaiting investigation start...
+            </p>
+
+            <div *ngFor="let entry of logs" class="flex gap-3 px-5 py-2.5">
+                <span class="text-[10px] text-zinc-600 flex-shrink-0 tabular-nums mt-px">
+                    [{{ entry.timestamp }}]
+                </span>
+                <span class="font-mono text-[10px]" [ngClass]="entry.colorClass">
+                    {{ entry.message }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ── Reset ─────────────────────────────────────────────────────────────── -->
+    <div class="p-5">
+        <button (click)="reset()"
+            class="w-full rounded-lg border border-zinc-700 px-4 py-2.5 text-[11px] uppercase tracking-[0.15em] text-zinc-400 transition-all hover:bg-zinc-800 hover:border-zinc-500 hover:text-zinc-200">
+            Reset
+        </button>
+    </div>
+
+</div>
