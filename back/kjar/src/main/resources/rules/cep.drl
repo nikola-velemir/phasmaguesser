@@ -8,7 +8,6 @@ import com.ftn.sbnz.model.traits.DerivedTrait;
 import com.ftn.sbnz.model.ghosts.Ghost;
 
 
-// ── CEP type declarations ────────────────────────────────────────────────────
 declare CandleExtinguishedEvent
     @role(event)
     @timestamp(timestamp)
@@ -32,14 +31,6 @@ declare TraitObservedEvent
     @timestamp(timestamp)
     @expires(10m)
 end
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-//  ONRYO
-//
-//  Hunts after every 3rd candle extinguish within 30s windows.
-//  Incense at the threshold provokes rather than prevents a hunt.
-// ═══════════════════════════════════════════════════════════════════════════
 
 rule "CEP_Onryo_Triple_Candle_Then_Hunt"
     salience 30
@@ -68,16 +59,6 @@ then
 end
 
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  SMUDGE TIMER — Demon / Regular Ghost / Spirit
-//
-//  Sequence: HuntStartedEvent → IncenseUsedEvent → next HuntStartedEvent
-//  Gap measured between incense and the NEXT hunt after it.
-//
-//  60–90s   → Demon   (Early_Hunt_And_Low_Cooldown)
-//  90–180s  → Regular (Normal_Smudge_Timer)
-//  >180s    → Spirit  (Long_Smudge_Timer)
-// ═══════════════════════════════════════════════════════════════════════════
 
 rule "CEP_Smudge_Demon_Short_Timer"
     salience 30
@@ -143,23 +124,7 @@ then
 end
 
 
-// ═══════════════════════════════════════════════════════════════════════════
-//  THE MIMIC
-//
-//  Copies a random ghost every 30–120s. Signal: contradictory behaviours
-//  that no single ghost can produce.
-//
-//  Four independent detection paths — any one is sufficient:
-//    M-1a : Two contradictory smudge timers (DerivedTrait × DerivedTrait)
-//    M-1b : Two mutually exclusive TraitObservedEvents (event × event)
-//    M-1c : A TraitObservedEvent contradicts a smudge-derived trait
-//            (event × DerivedTrait) — the gap your scenario hits
-//    M-2  : Model visibly changes during a hunt
-// ═══════════════════════════════════════════════════════════════════════════
 
-// ── M-1a : Contradictory smudge timers ──────────────────────────────────────
-//  Pure DerivedTrait matching — no temporal window needed because the
-//  contradiction itself is the signal regardless of when it was observed.
 
 rule "CEP_Mimic_Smudge_Timer_Shift_Short_And_Long"
     salience 35
@@ -203,12 +168,6 @@ then
     System.out.println("[CEP - Mimic] M-1a Normal+Long smudge. Derived: Copy_Other_Ghosts");
 end
 
-
-// ── M-1b : Two mutually exclusive TraitObservedEvents ───────────────────────
-//  Window extended to 5m — Mimic switches every 30-120s so two player
-//  observations can easily be several minutes apart within one investigation.
-//  The not Ghost(...) guard ensures no single real ghost owns both traits.
-
 rule "CEP_Mimic_Behaviour_Shift"
     salience 30
 when
@@ -231,21 +190,6 @@ then
         + "' -> '" + $t2.getTraitName() + "'. Derived: Copy_Other_Ghosts");
 end
 
-
-// ── M-1c : TraitObservedEvent contradicts a smudge-derived trait ─────────────
-//  This is the gap your scenario hits:
-//    Player observes Temperature_Based_Speed (TraitObservedEvent)
-//    CEP later derives Early_Hunt_And_Low_Cooldown (Demon smudge timer)
-//    No single ghost has both — Mimic is copying two different ghosts.
-//
-//  We enumerate the three smudge DerivedTraits against trait observations
-//  that belong to ghosts which CANNOT have that smudge behaviour.
-//  "Cannot have" = no Ghost fact exists that owns both the observed trait
-//  AND the smudge trait — same guard as M-1b but crossing fact types.
-//
-//  Note: smudge DerivedTraits are not TraitObservedEvents so `after` cannot
-//  be used. The contradiction itself is the temporal signal — order and
-//  timing don't matter, only that both facts coexist in the session.
 
 rule "CEP_Mimic_Trait_Contradicts_Short_Smudge"
     salience 35
@@ -316,7 +260,6 @@ then
 end
 
 
-// ── M-2 : Model visibly changes during a hunt ───────────────────────────────
 
 rule "CEP_Mimic_Model_Changing_During_Hunt"
     salience 30
