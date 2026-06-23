@@ -27,10 +27,7 @@ public class EventService {
         this.cepSession = cepSession;
         this.clock = cepSession.getSessionClock();
         this.clockUtility = clockUtility;
- 
-        // Ghost facts must be present in the CEP session so that rules like
-        // CEP_Mimic_Behaviour_Shift can verify trait ownership via
-        // Ghost(hasTrait(...)) constraints.
+
         List<Ghost> staticGhosts = GhostProvider.getStaticGhostsKnowledgeBase();
         for (Ghost g : staticGhosts) {
             cepSession.insert(g);
